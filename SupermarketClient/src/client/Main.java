@@ -17,7 +17,7 @@ public class Main extends Application {
     // Controllers
     private LoginController loginController;
     private MenuController menuController;
-    private GameController gameController;
+    private ImprovedGameController gameController;
     private LeaderboardController leaderboardController;
     
     @Override
@@ -51,7 +51,7 @@ public class Main extends Application {
         menuController = new MenuController(primaryStage, 
             this::showGameScreen, 
             this::showLeaderboard);
-        gameController = new GameController(primaryStage, this::showMenuScreen);
+        gameController = new ImprovedGameController(primaryStage, this::showMenuScreen);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
     }
     
