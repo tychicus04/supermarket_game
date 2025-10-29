@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/SupermarketClient/SupermarketClient.iml" filepath="$PROJECT_DIR$/SupermarketClient/SupermarketClient.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/SupermarketGame.iml" filepath="$PROJECT_DIR$/.idea/SupermarketGame.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SupermarketServer/SupermarketServer.iml" filepath="$PROJECT_DIR$/SupermarketServer/SupermarketServer.iml" />
+    </modules>
+  </component>
+</project>
