@@ -1,0 +1,29 @@
+services:
+  supermarket-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+      # Alternative: Use Dockerfile.server-full for full JDK runtime
+      # dockerfile: Dockerfile.server-full
+    image: supermarket-server:latest
+    container_name: supermarket-game-server
+    ports:
+      - "8888:8888"
+    volumes:
+      # Persist database
+      - ./data:/app/data
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    restart: unless-stopped
+    networks:
+      - supermarket-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8888"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  supermarket-network:
+    driver: bridge

@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/SupermarketClient/SupermarketClient.iml" filepath="$PROJECT_DIR$/SupermarketClient/SupermarketClient.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/SupermarketGame.iml" filepath="$PROJECT_DIR$/.idea/SupermarketGame.iml" />
       <module fileurl="file://$PROJECT_DIR$/SupermarketServer/SupermarketServer.iml" filepath="$PROJECT_DIR$/SupermarketServer/SupermarketServer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SupermarketClient/src/src.iml" filepath="$PROJECT_DIR$/SupermarketClient/src/src.iml" />
     </modules>
   </component>
 </project>

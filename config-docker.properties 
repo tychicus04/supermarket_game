@@ -1,0 +1,28 @@
+# Supermarket Game Client Configuration
+# For connecting to Docker server
+
+# Local Docker server
+server.host=localhost
+server.port=8888
+
+# Remote Docker server (uncomment and update if server is on different machine)
+# server.host=192.168.1.100
+# server.port=8888
+
+# Game settings
+game.duration=120
+game.customer.timeout=10
+
+# UI settings
+ui.window.width=700
+ui.window.height=650
+
+# Network settings
+network.timeout=5000
+network.retry=3
+
+# Notes:
+# - If server runs on same machine: use localhost
+# - If server runs on different machine: use server's IP address
+# - Make sure firewall allows port 8888
+# - Docker server listens on 0.0.0.0:8888 (all interfaces)
