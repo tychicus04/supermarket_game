@@ -2,9 +2,7 @@ services:
   supermarket-server:
     build:
       context: .
-      dockerfile: Dockerfile.server
-      # Alternative: Use Dockerfile.server-full for full JDK runtime
-      # dockerfile: Dockerfile.server-full
+      dockerfile: Dockerfile
     image: supermarket-server:latest
     container_name: supermarket-game-server
     ports:
