@@ -27,16 +27,21 @@ public class MenuController {
     private Stage stage;
     private Consumer<Boolean> onStartGame;
     private Runnable onShowLeaderboard;
+    private Runnable onShowLobby;
+    private Runnable onLogout;
     private NetworkManager network;
     
     private String currentRoomId;
     private VBox waitingRoomLayout;
     private Label roomPlayerCount;
     
-    public MenuController(Stage stage, Consumer<Boolean> onStartGame, Runnable onShowLeaderboard) {
+    public MenuController(Stage stage, Consumer<Boolean> onStartGame,
+                         Runnable onShowLeaderboard, Runnable onShowLobby, Runnable onLogout) {
         this.stage = stage;
         this.onStartGame = onStartGame;
         this.onShowLeaderboard = onShowLeaderboard;
+        this.onShowLobby = onShowLobby;
+        this.onLogout = onLogout;
         this.network = NetworkManager.getInstance();
     }
     
@@ -58,19 +63,29 @@ public class MenuController {
         singleBtn.setOnAction(e -> onStartGame.accept(true));
         
         Button multiBtn = UIHelper.createButton("👥 MULTIPLAYER", UIHelper.INFO_COLOR);
-        multiBtn.setOnAction(e -> showMultiplayerOptions());
-        
+        multiBtn.setOnAction(e -> {
+            if (onShowLobby != null) {
+                onShowLobby.run();
+            } else {
+                showMultiplayerOptions();
+            }
+        });
+
         Button leaderboardBtn = UIHelper.createButton("🏆 LEADERBOARD", UIHelper.WARNING_COLOR);
         leaderboardBtn.setOnAction(e -> {
             network.getLeaderboard();
             onShowLeaderboard.run();
         });
         
-        Button exitBtn = UIHelper.createButton("🚪 EXIT", "#95a5a6");
-        exitBtn.setOnAction(e -> javafx.application.Platform.exit());
-        
-        root.getChildren().addAll(welcome, singleBtn, multiBtn, leaderboardBtn, exitBtn);
-        
+        Button logoutBtn = UIHelper.createButton("🚪 LOGOUT", "#e67e22");
+        logoutBtn.setOnAction(e -> {
+            if (onLogout != null) {
+                onLogout.run();
+            }
+        });
+
+        root.getChildren().addAll(welcome, singleBtn, multiBtn, leaderboardBtn, logoutBtn);
+
         Scene scene = new Scene(root, 600, 500);
         stage.setScene(scene);
     }

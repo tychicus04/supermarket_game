@@ -31,22 +31,32 @@ public class LobbyController {
     private String currentRoomId;
     private List<String> playersInRoom;
     private List<Map<String, String>> friendsList;
+    private List<Map<String, String>> availableRooms;
 
     // UI Components
     private Label roomIdLabel;
     private VBox playerSlotsBox;
     private VBox friendsListBox;
+    private VBox roomsListBox;
+    private VBox searchResultsBox;
+    private VBox friendRequestsBox;
     private Button startGameButton;
     private Label[] playerLabels; // P1, P2, P3, P4
 
-    private Runnable onGameStart;
+    private BorderPane mainRoot;
+    private boolean inRoom = false;
 
-    public LobbyController(Stage stage, Runnable onGameStart) {
+    private Runnable onGameStart;
+    private Runnable onBackToMenu;
+
+    public LobbyController(Stage stage, Runnable onGameStart, Runnable onBackToMenu) {
         this.stage = stage;
         this.network = NetworkManager.getInstance();
         this.onGameStart = onGameStart;
+        this.onBackToMenu = onBackToMenu;
         this.playersInRoom = new ArrayList<>();
         this.friendsList = new ArrayList<>();
+        this.availableRooms = new ArrayList<>();
         this.playerLabels = new Label[4];
     }
 
@@ -54,21 +64,64 @@ public class LobbyController {
         this.currentUsername = username;
         this.currentRoomId = roomId;
         this.playersInRoom = new ArrayList<>(initialPlayers);
+        this.inRoom = (roomId != null && !roomId.isEmpty());
 
         createLobbyUI();
 
-        // Request friend list from server
-        network.sendMessage(new Message("C2S_GET_FRIEND_LIST", ""));
+        // Request friend list and room list from server
+        network.sendMessage(new Message("C2S_GET_FRIENDS", ""));
+        network.sendMessage(new Message("C2S_GET_FRIEND_REQUESTS", ""));
+        if (!inRoom) {
+            network.sendMessage(new Message("C2S_GET_ROOM_LIST", ""));
+        }
     }
 
     /**
      * Create lobby UI
      */
     private void createLobbyUI() {
-        BorderPane root = new BorderPane();
-        root.setPadding(new Insets(20));
-        root.setStyle(UIHelper.createGradientBackground("#2c3e50", "#34495e"));
+        mainRoot = new BorderPane();
+        mainRoot.setPadding(new Insets(20));
+        mainRoot.setStyle(UIHelper.createGradientBackground("#2c3e50", "#34495e"));
 
+        if (inRoom) {
+            // Show room view (current implementation)
+            showRoomView();
+        } else {
+            // Show room browser
+            showRoomBrowser();
+        }
+
+        Scene scene = new Scene(mainRoot, 1000, 700);
+        stage.setScene(scene);
+    }
+
+    /**
+     * Show the room browser UI
+     */
+    private void showRoomBrowser() {
+        // Top: Title
+        VBox topSection = createBrowserTitle();
+
+        // Center: Room list
+        VBox centerSection = createRoomList();
+
+        // Right: Friends section
+        VBox rightSection = createFriendsSection();
+
+        // Bottom: Actions
+        HBox bottomSection = createBrowserBottomActions();
+
+        mainRoot.setTop(topSection);
+        mainRoot.setCenter(centerSection);
+        mainRoot.setRight(rightSection);
+        mainRoot.setBottom(bottomSection);
+    }
+
+    /**
+     * Show the room view UI (when in a room)
+     */
+    private void showRoomView() {
         // Top: Room info
         VBox topSection = createRoomInfo();
 
@@ -81,15 +134,100 @@ public class LobbyController {
         // Bottom: Actions
         HBox bottomSection = createBottomActions();
 
-        root.setTop(topSection);
-        root.setCenter(centerSection);
-        root.setRight(rightSection);
-        root.setBottom(bottomSection);
-
-        Scene scene = new Scene(root, 900, 600);
-        stage.setScene(scene);
+        mainRoot.setTop(topSection);
+        mainRoot.setCenter(centerSection);
+        mainRoot.setRight(rightSection);
+        mainRoot.setBottom(bottomSection);
 
         updatePlayerSlots();
+    }
+
+    /**
+     * Create browser title section
+     */
+    private VBox createBrowserTitle() {
+        VBox titleBox = new VBox(10);
+        titleBox.setAlignment(Pos.CENTER);
+        titleBox.setPadding(new Insets(20));
+
+        Text title = new Text("🏠 ROOM BROWSER");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 32));
+        title.setFill(Color.WHITE);
+
+        Label subtitle = new Label("Choose a room to join or create your own");
+        subtitle.setFont(Font.font("Arial", 14));
+        subtitle.setTextFill(Color.web("#95a5a6"));
+
+        titleBox.getChildren().addAll(title, subtitle);
+        return titleBox;
+    }
+
+    /**
+     * Create room list display
+     */
+    private VBox createRoomList() {
+        VBox listContainer = new VBox(15);
+        listContainer.setAlignment(Pos.TOP_CENTER);
+        listContainer.setPadding(new Insets(20));
+
+        HBox headerBox = new HBox(20);
+        headerBox.setAlignment(Pos.CENTER);
+
+        Text roomsTitle = new Text("📋 AVAILABLE ROOMS");
+        roomsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        roomsTitle.setFill(Color.WHITE);
+
+        Button refreshButton = new Button("🔄 Refresh");
+        refreshButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
+                "-fx-font-size: 14px; -fx-cursor: hand;");
+        refreshButton.setOnAction(e -> {
+            network.sendMessage(new Message("C2S_GET_ROOM_LIST", ""));
+        });
+
+        headerBox.getChildren().addAll(roomsTitle, refreshButton);
+
+        ScrollPane roomsScroll = new ScrollPane();
+        roomsScroll.setPrefHeight(400);
+        roomsScroll.setFitToWidth(true);
+        roomsScroll.setStyle("-fx-background-color: transparent;");
+
+        roomsListBox = new VBox(10);
+        roomsListBox.setPadding(new Insets(10));
+        roomsListBox.setAlignment(Pos.TOP_CENTER);
+
+        Label noRoomsLabel = new Label("No rooms available. Create one!");
+        noRoomsLabel.setTextFill(Color.web("#95a5a6"));
+        noRoomsLabel.setFont(Font.font("Arial", 14));
+        roomsListBox.getChildren().add(noRoomsLabel);
+
+        roomsScroll.setContent(roomsListBox);
+
+        listContainer.getChildren().addAll(headerBox, roomsScroll);
+        return listContainer;
+    }
+
+    /**
+     * Create bottom actions for browser
+     */
+    private HBox createBrowserBottomActions() {
+        HBox actions = new HBox(20);
+        actions.setAlignment(Pos.CENTER);
+        actions.setPadding(new Insets(20));
+
+        Button backButton = UIHelper.createButton("🔙 BACK TO MENU", UIHelper.DANGER_COLOR);
+        backButton.setOnAction(e -> {
+            if (onBackToMenu != null) {
+                onBackToMenu.run();
+            }
+        });
+
+        Button createRoomButton = UIHelper.createButton("➕ CREATE ROOM", UIHelper.PRIMARY_COLOR);
+        createRoomButton.setOnAction(e -> {
+            network.sendMessage(new Message("CREATE_ROOM", ""));
+        });
+
+        actions.getChildren().addAll(backButton, createRoomButton);
+        return actions;
     }
 
     /**
@@ -193,12 +331,12 @@ public class LobbyController {
     }
 
     /**
-     * Create friends section (right sidebar)
+     * Create friends section (right sidebar) with search and friend requests
      */
     private VBox createFriendsSection() {
         VBox friendsSection = new VBox(15);
         friendsSection.setPadding(new Insets(20));
-        friendsSection.setPrefWidth(250);
+        friendsSection.setPrefWidth(280);
         friendsSection.setStyle("-fx-background-color: rgba(0, 0, 0, 0.2); " +
                 "-fx-background-radius: 10px;");
 
@@ -206,36 +344,73 @@ public class LobbyController {
         friendsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
         friendsTitle.setFill(Color.WHITE);
 
-        // Add friend section
-        HBox addFriendBox = new HBox(5);
-        addFriendBox.setAlignment(Pos.CENTER);
+        // Search users section
+        VBox searchSection = new VBox(8);
+        Label searchLabel = new Label("🔍 Find Friends");
+        searchLabel.setTextFill(Color.WHITE);
+        searchLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
-        TextField friendUsernameField = new TextField();
-        friendUsernameField.setPromptText("Username");
-        friendUsernameField.setPrefWidth(150);
+        HBox searchBox = new HBox(5);
+        searchBox.setAlignment(Pos.CENTER);
 
-        Button addButton = new Button("➕");
-        addButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search username...");
+        searchField.setPrefWidth(180);
+
+        Button searchButton = new Button("🔍");
+        searchButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
                 "-fx-font-size: 14px; -fx-cursor: hand;");
-        addButton.setOnAction(e -> {
-            String targetUsername = friendUsernameField.getText().trim();
-            if (!targetUsername.isEmpty()) {
-                network.sendMessage(new Message("C2S_FRIEND_REQUEST", targetUsername));
-                friendUsernameField.clear();
-                UIHelper.showInfo("Sent", "Friend request sent to " + targetUsername);
+        searchButton.setOnAction(e -> {
+            String searchTerm = searchField.getText().trim();
+            if (searchTerm.length() >= 2) {
+                network.sendMessage(new Message("C2S_SEARCH_USERS", searchTerm));
             }
         });
 
-        addFriendBox.getChildren().addAll(friendUsernameField, addButton);
+        searchBox.getChildren().addAll(searchField, searchButton);
+
+        // Search results box (hidden by default)
+        VBox searchResultsBox = new VBox(5);
+        searchResultsBox.setVisible(false);
+        searchResultsBox.setManaged(false);
+        searchResultsBox.setStyle("-fx-background-color: rgba(255,255,255,0.1); " +
+                "-fx-padding: 10px; -fx-background-radius: 5px;");
+
+        searchSection.getChildren().addAll(searchLabel, searchBox, searchResultsBox);
+
+        // Friend requests section
+        VBox requestsSection = new VBox(8);
+        Label requestsLabel = new Label("📩 Friend Requests");
+        requestsLabel.setTextFill(Color.WHITE);
+        requestsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
+        VBox requestsListBox = new VBox(5);
+        requestsListBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); " +
+                "-fx-padding: 8px; -fx-background-radius: 5px;");
+
+        Button refreshRequestsButton = new Button("🔄 Check Requests");
+        refreshRequestsButton.setStyle("-fx-background-color: #9b59b6; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 5px 10px;");
+        refreshRequestsButton.setOnAction(e -> {
+            network.sendMessage(new Message("C2S_GET_FRIEND_REQUESTS", ""));
+        });
+
+        requestsSection.getChildren().addAll(requestsLabel, refreshRequestsButton, requestsListBox);
 
         // Friends list
+        Label myFriendsLabel = new Label("💚 My Friends");
+        myFriendsLabel.setTextFill(Color.WHITE);
+        myFriendsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
         ScrollPane friendsScroll = new ScrollPane();
-        friendsScroll.setPrefHeight(300);
+        friendsScroll.setPrefHeight(200);
         friendsScroll.setFitToWidth(true);
         friendsScroll.setStyle("-fx-background-color: transparent;");
 
         friendsListBox = new VBox(5);
         friendsListBox.setPadding(new Insets(10));
+        friendsListBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); " +
+                "-fx-background-radius: 5px;");
 
         friendsScroll.setContent(friendsListBox);
 
@@ -244,7 +419,22 @@ public class LobbyController {
         noFriendsLabel.setFont(Font.font("Arial", 12));
         friendsListBox.getChildren().add(noFriendsLabel);
 
-        friendsSection.getChildren().addAll(friendsTitle, addFriendBox, friendsScroll);
+        Button refreshFriendsButton = new Button("🔄 Refresh");
+        refreshFriendsButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 5px 10px;");
+        refreshFriendsButton.setOnAction(e -> {
+            network.sendMessage(new Message("C2S_GET_FRIENDS", ""));
+        });
+
+        friendsSection.getChildren().addAll(friendsTitle, searchSection,
+                new javafx.scene.control.Separator(), requestsSection,
+                new javafx.scene.control.Separator(), myFriendsLabel,
+                refreshFriendsButton, friendsScroll);
+
+        // Store references for later updates
+        this.searchResultsBox = searchResultsBox;
+        this.friendRequestsBox = requestsListBox;
+
         return friendsSection;
     }
 
@@ -259,7 +449,10 @@ public class LobbyController {
         Button leaveButton = UIHelper.createButton("🚪 LEAVE ROOM", UIHelper.DANGER_COLOR);
         leaveButton.setOnAction(e -> {
             network.sendMessage(new Message("LEAVE_ROOM", currentRoomId));
-            // Go back to menu (handled by Main.java)
+            // Navigate back to menu
+            if (onBackToMenu != null) {
+                onBackToMenu.run();
+            }
         });
 
         startGameButton = UIHelper.createButton("🎮 START GAME", UIHelper.PRIMARY_COLOR);
@@ -324,40 +517,67 @@ public class LobbyController {
     }
 
     /**
-     * Create friend list item with invite button
+     * Update room list display
      */
-    private HBox createFriendItem(Map<String, String> friend) {
-        HBox item = new HBox(10);
-        item.setAlignment(Pos.CENTER_LEFT);
-        item.setPadding(new Insets(8));
-        item.setStyle("-fx-background-color: rgba(255, 255, 255, 0.05); " +
-                "-fx-background-radius: 5px;");
+    private void updateRoomsList() {
+        roomsListBox.getChildren().clear();
 
-        Label nameLabel = new Label(friend.get("username"));
-        nameLabel.setTextFill(Color.WHITE);
-        nameLabel.setFont(Font.font("Arial", 14));
+        if (availableRooms.isEmpty()) {
+            Label noRooms = new Label("No rooms available. Create one!");
+            noRooms.setTextFill(Color.web("#95a5a6"));
+            noRooms.setFont(Font.font("Arial", 14));
+            roomsListBox.getChildren().add(noRooms);
+            return;
+        }
+
+        for (Map<String, String> room : availableRooms) {
+            HBox roomItem = createRoomItem(room);
+            roomsListBox.getChildren().add(roomItem);
+        }
+    }
+
+    /**
+     * Create a room list item
+     */
+    private HBox createRoomItem(Map<String, String> room) {
+        HBox item = new HBox(15);
+        item.setAlignment(Pos.CENTER_LEFT);
+        item.setPadding(new Insets(15, 20, 15, 20));
+        item.setPrefWidth(600);
+        item.setStyle("-fx-background-color: rgba(255, 255, 255, 0.1); " +
+                "-fx-background-radius: 10px; " +
+                "-fx-border-color: #3498db; " +
+                "-fx-border-radius: 10px; " +
+                "-fx-border-width: 2px;");
+
+        VBox infoBox = new VBox(5);
+
+        Label roomIdLabel = new Label("🏠 " + room.get("roomId"));
+        roomIdLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        roomIdLabel.setTextFill(Color.WHITE);
+
+        Label detailsLabel = new Label("Host: " + room.get("creator") +
+                " • Players: " + room.get("playerCount") + "/" + room.get("maxPlayers"));
+        detailsLabel.setFont(Font.font("Arial", 12));
+        detailsLabel.setTextFill(Color.web("#95a5a6"));
+
+        infoBox.getChildren().addAll(roomIdLabel, detailsLabel);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Status indicator (online/offline - for future implementation)
-        Label statusLabel = new Label("●");
-        statusLabel.setTextFill(Color.web("#95a5a6")); // Gray = unknown status
-        statusLabel.setFont(Font.font(10));
-
-        Button inviteButton = new Button("📧");
-        inviteButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
-                "-fx-font-size: 12px; -fx-cursor: hand; " +
-                "-fx-padding: 5px 10px;");
-        inviteButton.setTooltip(new Tooltip("Invite to room"));
-        inviteButton.setOnAction(e -> {
-            String friendUserId = friend.get("user_id");
-            network.sendMessage(new Message("C2S_INVITE_TO_ROOM",
-                    friendUserId + ";" + currentRoomId));
-            UIHelper.showInfo("Invited", "Invitation sent to " + friend.get("username"));
+        Button joinButton = new Button("📩 Request Join");
+        joinButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
+                "-fx-font-size: 14px; -fx-cursor: hand; " +
+                "-fx-padding: 10px 20px;");
+        joinButton.setOnAction(e -> {
+            String roomId = room.get("roomId");
+            network.sendMessage(new Message("C2S_REQUEST_JOIN", roomId));
+            joinButton.setDisable(true);
+            joinButton.setText("⏳ Requested...");
         });
 
-        item.getChildren().addAll(nameLabel, spacer, statusLabel, inviteButton);
+        item.getChildren().addAll(infoBox, spacer, joinButton);
         return item;
     }
 
@@ -413,6 +633,57 @@ public class LobbyController {
                 network.sendMessage(new Message("JOIN_ROOM", roomId));
             }
         }
+    }
+
+    /**
+     * Handle room list update from server
+     */
+    public void handleRoomListUpdate(Message message) {
+        String jsonData = message.getData();
+        parseRoomsList(jsonData);
+        updateRoomsList();
+    }
+
+    /**
+     * Handle join request from another player (for room creator)
+     */
+    public void handleJoinRequest(Message message) {
+        String[] parts = message.getData().split(";");
+        if (parts.length >= 2) {
+            String requesterUsername = parts[0];
+            String roomId = parts[1];
+
+            boolean accept = UIHelper.showConfirm(
+                    "Join Request",
+                    requesterUsername + " wants to join your room.\n\nAccept?"
+            );
+
+            if (accept) {
+                network.sendMessage(new Message("C2S_ACCEPT_JOIN", requesterUsername + ";" + roomId));
+            } else {
+                network.sendMessage(new Message("C2S_REJECT_JOIN", requesterUsername + ";" + roomId));
+            }
+        }
+    }
+
+    /**
+     * Handle join request approved
+     */
+    public void handleJoinApproved(Message message) {
+        String roomId = message.getData();
+        UIHelper.showInfo("Join Approved", "You can now join the room!");
+        // Automatically join the room
+        network.sendMessage(new Message("JOIN_ROOM", roomId));
+    }
+
+    /**
+     * Handle join request rejected
+     */
+    public void handleJoinRejected(Message message) {
+        String reason = message.getData();
+        UIHelper.showError("Join Rejected", reason);
+        // Refresh room list
+        network.sendMessage(new Message("C2S_GET_ROOM_LIST", ""));
     }
 
     // ==================== UTILITY METHODS ====================
@@ -473,6 +744,37 @@ public class LobbyController {
     }
 
     /**
+     * Parse rooms list from JSON
+     */
+    private void parseRoomsList(String json) {
+        availableRooms.clear();
+
+        // Simple JSON array parsing
+        if (json.equals("[]")) return;
+
+        json = json.substring(1, json.length() - 1); // Remove [ ]
+
+        int braceCount = 0;
+        int start = 0;
+
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '{') braceCount++;
+            if (c == '}') {
+                braceCount--;
+                if (braceCount == 0) {
+                    String roomJson = json.substring(start, i + 1);
+                    Map<String, String> room = parseRoomObject(roomJson);
+                    if (room != null) {
+                        availableRooms.add(room);
+                    }
+                    start = i + 2; // Skip }, and space
+                }
+            }
+        }
+    }
+
+    /**
      * Parse single friend object from JSON
      */
     private Map<String, String> parseFriendObject(String json) {
@@ -495,4 +797,352 @@ public class LobbyController {
 
         return friend.isEmpty() ? null : friend;
     }
+
+    /**
+     * Parse single room object from JSON
+     */
+    private Map<String, String> parseRoomObject(String json) {
+        Map<String, String> room = new HashMap<>();
+
+        // Extract roomId
+        int roomIdStart = json.indexOf("\"roomId\":\"") + 10;
+        int roomIdEnd = json.indexOf("\"", roomIdStart);
+        if (roomIdStart > 9 && roomIdEnd > roomIdStart) {
+            room.put("roomId", json.substring(roomIdStart, roomIdEnd));
+        }
+
+        // Extract creator
+        int creatorStart = json.indexOf("\"creator\":\"") + 11;
+        int creatorEnd = json.indexOf("\"", creatorStart);
+        if (creatorStart > 10 && creatorEnd > creatorStart) {
+            room.put("creator", json.substring(creatorStart, creatorEnd));
+        }
+
+        // Extract playerCount
+        int countStart = json.indexOf("\"playerCount\":") + 14;
+        int countEnd = json.indexOf(",", countStart);
+        if (countEnd == -1) countEnd = json.indexOf("}", countStart);
+        if (countStart > 13) {
+            String countStr = json.substring(countStart, countEnd).trim();
+            room.put("playerCount", countStr);
+        }
+
+        // Extract maxPlayers
+        int maxStart = json.indexOf("\"maxPlayers\":") + 13;
+        int maxEnd = json.indexOf("}", maxStart);
+        if (maxStart > 12) {
+            String maxStr = json.substring(maxStart, maxEnd).trim();
+            room.put("maxPlayers", maxStr);
+        }
+
+        return room.isEmpty() ? null : room;
+    }
+
+    // ==================== FRIEND MANAGEMENT HANDLERS ====================
+
+    /**
+     * Handle search results
+     */
+    public void handleSearchResults(Message message) {
+        String json = message.getData();
+        List<String> results = parseSimpleStringArray(json);
+
+        searchResultsBox.getChildren().clear();
+
+        if (results.isEmpty()) {
+            Label noResults = new Label("No users found");
+            noResults.setTextFill(Color.web("#95a5a6"));
+            searchResultsBox.getChildren().add(noResults);
+        } else {
+            for (String username : results) {
+                HBox userItem = createSearchResultItem(username);
+                searchResultsBox.getChildren().add(userItem);
+            }
+        }
+
+        searchResultsBox.setVisible(true);
+        searchResultsBox.setManaged(true);
+    }
+
+    /**
+     * Create search result item
+     */
+    private HBox createSearchResultItem(String username) {
+        HBox item = new HBox(10);
+        item.setAlignment(Pos.CENTER_LEFT);
+        item.setPadding(new Insets(5));
+        item.setStyle("-fx-background-color: rgba(255,255,255,0.1); " +
+                "-fx-background-radius: 3px;");
+
+        Label nameLabel = new Label(username);
+        nameLabel.setTextFill(Color.WHITE);
+        nameLabel.setFont(Font.font("Arial", 13));
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button addButton = new Button("➕");
+        addButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 3px 8px;");
+        addButton.setOnAction(e -> {
+            network.sendMessage(new Message("C2S_SEND_FRIEND_REQUEST", username));
+            addButton.setDisable(true);
+            addButton.setText("✓");
+        });
+
+        item.getChildren().addAll(nameLabel, spacer, addButton);
+        return item;
+    }
+
+    /**
+     * Handle friend requests list
+     */
+    public void handleFriendRequests(Message message) {
+        String json = message.getData();
+        List<String> requests = parseSimpleStringArray(json);
+
+        friendRequestsBox.getChildren().clear();
+
+        if (requests.isEmpty()) {
+            Label noRequests = new Label("No pending requests");
+            noRequests.setTextFill(Color.web("#95a5a6"));
+            noRequests.setFont(Font.font("Arial", 11));
+            friendRequestsBox.getChildren().add(noRequests);
+        } else {
+            for (String fromUser : requests) {
+                HBox requestItem = createFriendRequestItem(fromUser);
+                friendRequestsBox.getChildren().add(requestItem);
+            }
+        }
+    }
+
+    /**
+     * Create friend request item with improved styling
+     */
+    private HBox createFriendRequestItem(String fromUser) {
+        HBox item = new HBox(10);
+        item.setAlignment(Pos.CENTER_LEFT);
+        item.setPadding(new Insets(10, 12, 10, 12));
+        item.setStyle("-fx-background-color: rgba(155,89,182,0.3); " +
+                "-fx-background-radius: 6px; " +
+                "-fx-border-color: rgba(155,89,182,0.6); " +
+                "-fx-border-radius: 6px; " +
+                "-fx-border-width: 1.5px;");
+
+        Label nameLabel = new Label(fromUser);
+        nameLabel.setTextFill(Color.WHITE);
+        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        nameLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 2, 0, 0, 1);");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button acceptButton = new Button("✓ Accept");
+        acceptButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                "-fx-padding: 6px 12px; -fx-background-radius: 5px;");
+        acceptButton.setOnMouseEntered(e ->
+            acceptButton.setStyle("-fx-background-color: #229954; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                "-fx-padding: 6px 12px; -fx-background-radius: 5px;"));
+        acceptButton.setOnMouseExited(e ->
+            acceptButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                "-fx-padding: 6px 12px; -fx-background-radius: 5px;"));
+        acceptButton.setOnAction(e -> {
+            network.sendMessage(new Message("C2S_ACCEPT_FRIEND", fromUser));
+            friendRequestsBox.getChildren().remove(item);
+        });
+
+        Button rejectButton = new Button("✗ Reject");
+        rejectButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                "-fx-padding: 6px 12px; -fx-background-radius: 5px;");
+        rejectButton.setOnMouseEntered(e ->
+            rejectButton.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                "-fx-padding: 6px 12px; -fx-background-radius: 5px;"));
+        rejectButton.setOnMouseExited(e ->
+            rejectButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; " +
+                "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                "-fx-padding: 6px 12px; -fx-background-radius: 5px;"));
+        rejectButton.setOnAction(e -> {
+            network.sendMessage(new Message("C2S_REJECT_FRIEND", fromUser));
+            friendRequestsBox.getChildren().remove(item);
+        });
+
+        item.getChildren().addAll(nameLabel, spacer, acceptButton, rejectButton);
+        return item;
+    }
+
+    /**
+     * Handle friend list update with online status
+     */
+    public void handleFriendList(Message message) {
+        String json = message.getData();
+        parseFriendListWithOnline(json);
+        updateFriendsList();
+    }
+
+    /**
+     * Parse friend list with online status
+     */
+    private void parseFriendListWithOnline(String json) {
+        friendsList.clear();
+
+        if (json.equals("[]")) return;
+
+        json = json.substring(1, json.length() - 1); // Remove [ ]
+
+        int braceCount = 0;
+        int start = 0;
+
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '{') braceCount++;
+            if (c == '}') {
+                braceCount--;
+                if (braceCount == 0) {
+                    String friendJson = json.substring(start, i + 1);
+                    Map<String, String> friend = parseFriendWithOnline(friendJson);
+                    if (friend != null) {
+                        friendsList.add(friend);
+                    }
+                    start = i + 2;
+                }
+            }
+        }
+    }
+
+    /**
+     * Parse friend object with online status
+     */
+    private Map<String, String> parseFriendWithOnline(String json) {
+        Map<String, String> friend = new HashMap<>();
+
+        // Extract username
+        int usernameStart = json.indexOf("\"username\":\"") + 12;
+        int usernameEnd = json.indexOf("\"", usernameStart);
+        if (usernameStart > 11 && usernameEnd > usernameStart) {
+            friend.put("username", json.substring(usernameStart, usernameEnd));
+        }
+
+        // Extract online status
+        int onlineStart = json.indexOf("\"online\":") + 9;
+        int onlineEnd = json.indexOf("}", onlineStart);
+        if (onlineStart > 8) {
+            String onlineStr = json.substring(onlineStart, onlineEnd).trim();
+            friend.put("online", onlineStr);
+        }
+
+        return friend.isEmpty() ? null : friend;
+    }
+
+    /**
+     * Update friend list item to include invite button with improved styling
+     */
+    private HBox createFriendItem(Map<String, String> friend) {
+        HBox item = new HBox(12);
+        item.setAlignment(Pos.CENTER_LEFT);
+        item.setPadding(new Insets(12, 15, 12, 15));
+        item.setStyle("-fx-background-color: rgba(255, 255, 255, 0.15); " +
+                "-fx-background-radius: 8px; " +
+                "-fx-border-color: rgba(255, 255, 255, 0.2); " +
+                "-fx-border-radius: 8px; " +
+                "-fx-border-width: 1px; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);");
+
+        String username = friend.get("username");
+        boolean isOnline = "true".equals(friend.get("online"));
+
+        // Status indicator - larger and more visible
+        Label statusLabel = new Label("●");
+        statusLabel.setTextFill(isOnline ? Color.web("#27ae60") : Color.web("#95a5a6"));
+        statusLabel.setFont(Font.font(16));
+        statusLabel.setStyle("-fx-effect: dropshadow(gaussian, " +
+            (isOnline ? "rgba(39, 174, 96, 0.8)" : "rgba(149, 165, 166, 0.5)") +
+            ", 4, 0.5, 0, 0);");
+
+        // Username - larger, bold, better contrast
+        Label nameLabel = new Label(username);
+        nameLabel.setTextFill(Color.WHITE);
+        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        nameLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 2, 0, 0, 1);");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Invite button (only show if in room)
+        if (inRoom && currentRoomId != null) {
+            Button inviteButton = new Button("📧 Invite");
+            inviteButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
+                    "-fx-font-size: 13px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                    "-fx-padding: 8px 15px; -fx-background-radius: 6px; " +
+                    "-fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.5), 4, 0, 0, 2);");
+            inviteButton.setTooltip(new javafx.scene.control.Tooltip("Invite to your room"));
+            inviteButton.setOnMouseEntered(e ->
+                inviteButton.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white; " +
+                    "-fx-font-size: 13px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                    "-fx-padding: 8px 15px; -fx-background-radius: 6px; " +
+                    "-fx-effect: dropshadow(gaussian, rgba(41, 128, 185, 0.7), 6, 0, 0, 2);"));
+            inviteButton.setOnMouseExited(e ->
+                inviteButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
+                    "-fx-font-size: 13px; -fx-font-weight: bold; -fx-cursor: hand; " +
+                    "-fx-padding: 8px 15px; -fx-background-radius: 6px; " +
+                    "-fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.5), 4, 0, 0, 2);"));
+            inviteButton.setOnAction(e -> {
+                network.sendMessage(new Message("C2S_INVITE_TO_ROOM",
+                        username + ";" + currentRoomId));
+                UIHelper.showInfo("Invited", "Invitation sent to " + username);
+            });
+
+            item.getChildren().addAll(statusLabel, nameLabel, spacer, inviteButton);
+        } else {
+            item.getChildren().addAll(statusLabel, nameLabel, spacer);
+        }
+
+        return item;
+    }
+
+    /**
+     * Handle room invite received
+     */
+    public void handleRoomInvite(Message message) {
+        String[] parts = message.getData().split(";");
+        if (parts.length >= 2) {
+            String inviterUsername = parts[0];
+            String roomId = parts[1];
+
+            boolean accept = UIHelper.showConfirm(
+                    "Room Invitation",
+                    inviterUsername + " invited you to join room: " + roomId + "\n\nAccept?"
+            );
+
+            if (accept) {
+                network.sendMessage(new Message("JOIN_ROOM", roomId));
+            }
+        }
+    }
+
+    /**
+     * Parse simple string array from JSON
+     */
+    private List<String> parseSimpleStringArray(String json) {
+        List<String> result = new ArrayList<>();
+
+        if (json.equals("[]")) return result;
+
+        json = json.substring(1, json.length() - 1); // Remove [ ]
+
+        String[] parts = json.split(",");
+        for (String part : parts) {
+            String cleaned = part.trim().replace("\"", "");
+            if (!cleaned.isEmpty()) {
+                result.add(cleaned);
+            }
+        }
+
+        return result;
+    }
 }
+

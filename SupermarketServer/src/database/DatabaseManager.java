@@ -57,17 +57,50 @@ public class DatabaseManager {
             "FOREIGN KEY (username) REFERENCES users(username)" +
             ")";
         
-        String createIndexScore = 
+        String createFriendRequestsTable =
+            "CREATE TABLE IF NOT EXISTS friend_requests (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "from_username TEXT NOT NULL," +
+            "to_username TEXT NOT NULL," +
+            "status TEXT DEFAULT 'pending'," +
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+            "FOREIGN KEY (from_username) REFERENCES users(username)," +
+            "FOREIGN KEY (to_username) REFERENCES users(username)," +
+            "UNIQUE(from_username, to_username)" +
+            ")";
+
+        String createFriendsTable =
+            "CREATE TABLE IF NOT EXISTS friends (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "user1 TEXT NOT NULL," +
+            "user2 TEXT NOT NULL," +
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+            "FOREIGN KEY (user1) REFERENCES users(username)," +
+            "FOREIGN KEY (user2) REFERENCES users(username)," +
+            "UNIQUE(user1, user2)" +
+            ")";
+
+        String createIndexScore =
             "CREATE INDEX IF NOT EXISTS idx_scores_username ON scores(username)";
         
         String createIndexHighScore = 
             "CREATE INDEX IF NOT EXISTS idx_scores_high ON scores(score DESC)";
         
+        String createIndexFriends1 =
+            "CREATE INDEX IF NOT EXISTS idx_friends_user1 ON friends(user1)";
+
+        String createIndexFriends2 =
+            "CREATE INDEX IF NOT EXISTS idx_friends_user2 ON friends(user2)";
+
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createUsersTable);
             stmt.execute(createScoresTable);
+            stmt.execute(createFriendRequestsTable);
+            stmt.execute(createFriendsTable);
             stmt.execute(createIndexScore);
             stmt.execute(createIndexHighScore);
+            stmt.execute(createIndexFriends1);
+            stmt.execute(createIndexFriends2);
             System.out.println("✅ Database tables ready");
         }
     }
@@ -233,6 +266,244 @@ public class DatabaseManager {
         return games;
     }
     
+    // ==================== FRIEND MANAGEMENT ====================
+
+    /**
+     * Search users by username (for adding friends)
+     */
+    public List<String> searchUsers(String searchTerm, String excludeUser) {
+        List<String> users = new ArrayList<>();
+        String query = "SELECT username FROM users WHERE username LIKE ? AND username != ? LIMIT 20";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, "%" + searchTerm + "%");
+            pstmt.setString(2, excludeUser);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    users.add(rs.getString("username"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Search users error: " + e.getMessage());
+        }
+
+        return users;
+    }
+
+    /**
+     * Send friend request
+     */
+    public boolean sendFriendRequest(String fromUser, String toUser) {
+        // Check if already friends
+        if (areFriends(fromUser, toUser)) {
+            return false;
+        }
+
+        // Check if request already exists
+        String checkQuery = "SELECT * FROM friend_requests WHERE " +
+                           "(from_username = ? AND to_username = ?) OR " +
+                           "(from_username = ? AND to_username = ?)";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(checkQuery)) {
+            pstmt.setString(1, fromUser);
+            pstmt.setString(2, toUser);
+            pstmt.setString(3, toUser);
+            pstmt.setString(4, fromUser);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return false; // Request already exists
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Check friend request error: " + e.getMessage());
+            return false;
+        }
+
+        // Insert new request
+        String query = "INSERT INTO friend_requests (from_username, to_username, status) VALUES (?, ?, 'pending')";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, fromUser);
+            pstmt.setString(2, toUser);
+            pstmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("❌ Send friend request error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Accept friend request
+     */
+    public boolean acceptFriendRequest(String fromUser, String toUser) {
+        try {
+            connection.setAutoCommit(false);
+
+            // Update request status
+            String updateQuery = "UPDATE friend_requests SET status = 'accepted' " +
+                                "WHERE from_username = ? AND to_username = ? AND status = 'pending'";
+
+            try (PreparedStatement pstmt = connection.prepareStatement(updateQuery)) {
+                pstmt.setString(1, fromUser);
+                pstmt.setString(2, toUser);
+                int updated = pstmt.executeUpdate();
+
+                if (updated == 0) {
+                    connection.rollback();
+                    return false;
+                }
+            }
+
+            // Add to friends table (ensure user1 < user2 for consistency)
+            String user1 = fromUser.compareTo(toUser) < 0 ? fromUser : toUser;
+            String user2 = fromUser.compareTo(toUser) < 0 ? toUser : fromUser;
+
+            String insertQuery = "INSERT INTO friends (user1, user2) VALUES (?, ?)";
+
+            try (PreparedStatement pstmt = connection.prepareStatement(insertQuery)) {
+                pstmt.setString(1, user1);
+                pstmt.setString(2, user2);
+                pstmt.executeUpdate();
+            }
+
+            connection.commit();
+            connection.setAutoCommit(true);
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                connection.rollback();
+                connection.setAutoCommit(true);
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            System.err.println("❌ Accept friend request error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Reject friend request
+     */
+    public boolean rejectFriendRequest(String fromUser, String toUser) {
+        String query = "UPDATE friend_requests SET status = 'rejected' " +
+                      "WHERE from_username = ? AND to_username = ? AND status = 'pending'";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, fromUser);
+            pstmt.setString(2, toUser);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("❌ Reject friend request error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get pending friend requests for a user
+     */
+    public List<String> getPendingFriendRequests(String username) {
+        List<String> requests = new ArrayList<>();
+        String query = "SELECT from_username FROM friend_requests " +
+                      "WHERE to_username = ? AND status = 'pending' " +
+                      "ORDER BY created_at DESC";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, username);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    requests.add(rs.getString("from_username"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Get pending requests error: " + e.getMessage());
+        }
+
+        return requests;
+    }
+
+    /**
+     * Get friends list for a user
+     */
+    public List<String> getFriends(String username) {
+        List<String> friends = new ArrayList<>();
+        String query = "SELECT CASE " +
+                      "WHEN user1 = ? THEN user2 " +
+                      "WHEN user2 = ? THEN user1 " +
+                      "END as friend " +
+                      "FROM friends " +
+                      "WHERE user1 = ? OR user2 = ?";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, username);
+            pstmt.setString(3, username);
+            pstmt.setString(4, username);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    friends.add(rs.getString("friend"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Get friends error: " + e.getMessage());
+        }
+
+        return friends;
+    }
+
+    /**
+     * Check if two users are friends
+     */
+    public boolean areFriends(String user1, String user2) {
+        String query = "SELECT * FROM friends WHERE " +
+                      "(user1 = ? AND user2 = ?) OR (user1 = ? AND user2 = ?)";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            String u1 = user1.compareTo(user2) < 0 ? user1 : user2;
+            String u2 = user1.compareTo(user2) < 0 ? user2 : user1;
+
+            pstmt.setString(1, u1);
+            pstmt.setString(2, u2);
+            pstmt.setString(3, u2);
+            pstmt.setString(4, u1);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Check friends error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Remove friend
+     */
+    public boolean removeFriend(String user1, String user2) {
+        String query = "DELETE FROM friends WHERE " +
+                      "(user1 = ? AND user2 = ?) OR (user1 = ? AND user2 = ?)";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            String u1 = user1.compareTo(user2) < 0 ? user1 : user2;
+            String u2 = user1.compareTo(user2) < 0 ? user2 : user1;
+
+            pstmt.setString(1, u1);
+            pstmt.setString(2, u2);
+            pstmt.setString(3, u2);
+            pstmt.setString(4, u1);
+
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("❌ Remove friend error: " + e.getMessage());
+            return false;
+        }
+    }
+
     /**
      * Close database connection
      */

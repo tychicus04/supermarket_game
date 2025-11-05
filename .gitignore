@@ -1,0 +1,145 @@
+# Java compiled files
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# Build directories
+build/
+dist/
+target/
+out/
+bin/
+
+# NetBeans specific
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+build.xml.bak
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# Eclipse
+.metadata
+.classpath
+.project
+.settings/
+*.launch
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+ehthumbs.db
+
+# Database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+supermarket_game.db
+temp_check.db
+
+# Log files
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.backup
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Package files (don't ignore libs that are needed)
+# *.jar (commented out - we need sqlite-jdbc jar)
+
+# Compiled resources
+Client/build/
+SupermarketServer/build/
+Shared/build/
+
+# Distribution
+Client/dist/
+SupermarketServer/dist/
+
+# Test files
+test-results/
+coverage/
+
+# IDE generated run configurations (optional - keep the ones we created)
+# .idea/runConfigurations/
+
+# Gradle (if used in future)
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Maven (if used in future)
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Documentation build
+docs/_build/
+site/
+
+# Game data
+data/
+*.dat
+save/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Node modules (if any JS tools used)
+node_modules/
+npm-debug.log*
+
+# Python (if any tools)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# Miscellaneous
+*.orig
+*.rej
+.cache/
+
+# Keep important library files
+!SupermarketServer/libs/*.jar
+!libs/*.jar
+

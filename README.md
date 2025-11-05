@@ -2,6 +2,28 @@
 
 Docker setup cho Supermarket Game Server với **Liberica JDK 8 Full**
 
+## ✨ Latest Features (Nov 2025)
+
+### 🆕 Room Browser & Request Join System
+- **Room List Display**: Xem tất cả các phòng đang hoạt động với thông tin chi tiết
+- **Request to Join**: Gửi yêu cầu tham gia đến chủ phòng
+- **Host Approval System**: Chủ phòng chấp nhận/từ chối requests
+- **Shared Module Architecture**: Code models dùng chung giữa Server và Client
+
+📖 **Chi tiết**: [ROOM_BROWSER_GUIDE.md](ROOM_BROWSER_GUIDE.md)
+
+## 🏗️ Project Structure
+
+```
+SupermarketGame/
+├── Shared/                    # 📦 Shared module (models, constants)
+├── SupermarketServer/         # 🖥️  Server module
+├── Client/                    # 💻 Client module
+├── compile.sh                 # 🔨 Compile all modules
+├── run-server.sh             # ▶️  Run server
+└── run-client.sh             # ▶️  Run client
+```
+
 ## 📦 Files Included
 
 ```

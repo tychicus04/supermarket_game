@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="SupermarketClient" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="client.Main" />
+    <module name="Client" />
+    <option name="VM_PARAMETERS" value="-Xms256m -Xmx512m" />
+    <option name="WORKING_DIRECTORY" value="$MODULE_WORKING_DIR$" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="client.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
+

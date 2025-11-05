@@ -8,5 +8,14 @@
     <orderEntry type="module" module-name="Client" exported="" />
     <orderEntry type="module" module-name="Shared" exported="" />
     <orderEntry type="module" module-name="SupermarketServer" exported="" />
+    <orderEntry type="module-library" exported="">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/SupermarketServer/libs/sqlite-jdbc-3.50.3.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>

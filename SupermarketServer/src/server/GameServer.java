@@ -110,6 +110,21 @@ public class GameServer {
     }
     
     /**
+     * Delete a room
+     */
+    public static void deleteRoom(String roomId) {
+        activeRooms.remove(roomId);
+        System.out.println("🗑️ Room deleted: " + roomId);
+    }
+
+    /**
+     * Get all room IDs
+     */
+    public static java.util.Set<String> getAllRoomIds() {
+        return new java.util.HashSet<>(activeRooms.keySet());
+    }
+
+    /**
      * Get a client handler by username
      */
     public static ClientHandler getClient(String username) {
@@ -124,5 +139,29 @@ public class GameServer {
         if (room != null) {
             room.broadcast(message);
         }
+    }
+
+    /**
+     * Get list of all active rooms as JSON
+     */
+    public static String getRoomListJson() {
+        StringBuilder json = new StringBuilder("[");
+        boolean first = true;
+
+        for (Map.Entry<String, GameRoom> entry : activeRooms.entrySet()) {
+            if (!first) json.append(",");
+            first = false;
+
+            GameRoom room = entry.getValue();
+            json.append("{");
+            json.append("\"roomId\":\"").append(room.getRoomId()).append("\",");
+            json.append("\"creator\":\"").append(room.getCreator()).append("\",");
+            json.append("\"playerCount\":").append(room.getPlayerCount()).append(",");
+            json.append("\"maxPlayers\":4");
+            json.append("}");
+        }
+
+        json.append("]");
+        return json.toString();
     }
 }

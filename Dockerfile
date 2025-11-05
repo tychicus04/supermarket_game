@@ -30,7 +30,10 @@ WORKDIR /app
 
 # Copy compiled classes and dependencies from builder
 COPY --from=builder /build/classes ./classes
-COPY --from=builder /build/sqlite-jdbc.jar ./lib/
+
+# Create lib directory and copy SQLite JDBC
+RUN mkdir -p /app/lib
+COPY --from=builder /build/sqlite-jdbc.jar ./lib/sqlite-jdbc.jar
 
 # Create directory for database
 RUN mkdir -p /app/data
