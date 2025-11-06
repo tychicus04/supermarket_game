@@ -20,6 +20,8 @@ import utils.UIHelper;
 
 import java.util.function.Consumer;
 
+import static constants.GameConstants.*;
+
 /**
  * Main menu controller
  */
@@ -32,9 +34,9 @@ public class MenuController {
     private NetworkManager network;
     
     private String currentRoomId;
-    private VBox waitingRoomLayout;
     private Label roomPlayerCount;
-    
+    private Button startGameButton;
+
     public MenuController(Stage stage, Consumer<Boolean> onStartGame,
                          Runnable onShowLeaderboard, Runnable onShowLobby, Runnable onLogout) {
         this.stage = stage;
@@ -55,34 +57,21 @@ public class MenuController {
         root.setPadding(new Insets(50));
         root.setStyle(UIHelper.createGradientBackground("#74ebd5", "#ACB6E5"));
         
-        Text welcome = new Text("Welcome! 👋");
+        Text welcome = new Text("Welcome!");
         welcome.setFont(Font.font("Arial", FontWeight.BOLD, 28));
         welcome.setFill(javafx.scene.paint.Color.WHITE);
         
-        Button singleBtn = UIHelper.createButton("🎮 SINGLE PLAYER", UIHelper.DANGER_COLOR);
-        singleBtn.setOnAction(e -> onStartGame.accept(true));
-        
-        Button multiBtn = UIHelper.createButton("👥 MULTIPLAYER", UIHelper.INFO_COLOR);
-        multiBtn.setOnAction(e -> {
-            if (onShowLobby != null) {
-                onShowLobby.run();
-            } else {
-                showMultiplayerOptions();
-            }
-        });
+        Button singleBtn = UIHelper.createButton("SINGLE PLAYER", UIHelper.DANGER_COLOR);
+        singleBtn.setOnAction(e -> handleSinglePlayerClick());
 
-        Button leaderboardBtn = UIHelper.createButton("🏆 LEADERBOARD", UIHelper.WARNING_COLOR);
-        leaderboardBtn.setOnAction(e -> {
-            network.getLeaderboard();
-            onShowLeaderboard.run();
-        });
-        
-        Button logoutBtn = UIHelper.createButton("🚪 LOGOUT", "#e67e22");
-        logoutBtn.setOnAction(e -> {
-            if (onLogout != null) {
-                onLogout.run();
-            }
-        });
+        Button multiBtn = UIHelper.createButton("MULTIPLAYER", UIHelper.INFO_COLOR);
+        multiBtn.setOnAction(e -> handleMultiplayerClick());
+
+        Button leaderboardBtn = UIHelper.createButton("LEADERBOARD", UIHelper.WARNING_COLOR);
+        leaderboardBtn.setOnAction(e -> handleLeaderboardClick());
+
+        Button logoutBtn = UIHelper.createButton("LOGOUT", "#e67e22");
+        logoutBtn.setOnAction(e -> handleLogoutClick());
 
         root.getChildren().addAll(welcome, singleBtn, multiBtn, leaderboardBtn, logoutBtn);
 
@@ -96,27 +85,23 @@ public class MenuController {
         root.setPadding(new Insets(50));
         root.setStyle(UIHelper.createSolidBackground("#ecf0f1"));
         
-        Text title = UIHelper.createTitle("👥 Multiplayer Mode");
+        Text title = UIHelper.createTitle("Multiplayer Mode");
         
         Button createBtn = UIHelper.createButton("CREATE ROOM", UIHelper.PRIMARY_COLOR);
-        createBtn.setOnAction(e -> network.createRoom());
-        
+        createBtn.setOnAction(e -> handleCreateRoomClick());
+
         HBox joinBox = new HBox(10);
         joinBox.setAlignment(Pos.CENTER);
         
         TextField roomField = UIHelper.createTextField("Room ID", 200);
         Button joinBtn = UIHelper.createSmallButton("JOIN", UIHelper.SECONDARY_COLOR);
-        joinBtn.setOnAction(e -> {
-            if (!roomField.getText().isEmpty()) {
-                network.joinRoom(roomField.getText().trim());
-            }
-        });
-        
+        joinBtn.setOnAction(e -> handleJoinRoomClick(roomField.getText()));
+
         joinBox.getChildren().addAll(roomField, joinBtn);
         
-        Button backBtn = UIHelper.createButton("← BACK", "#95a5a6");
-        backBtn.setOnAction(e -> showMainMenu());
-        
+        Button backBtn = UIHelper.createButton("BACK", "#95a5a6");
+        backBtn.setOnAction(e -> handleBackToMainMenuClick());
+
         root.getChildren().addAll(title, createBtn, joinBox, backBtn);
         
         Scene scene = new Scene(root, 600, 500);
@@ -142,52 +127,39 @@ public class MenuController {
         waitText.setFont(Font.font("Arial", FontWeight.NORMAL, 18));
         waitText.setFill(javafx.scene.paint.Color.web("#95a5a6"));
         
-        Button startBtn = UIHelper.createButton("START GAME", UIHelper.PRIMARY_COLOR);
-        startBtn.setDisable(playerCount < 2);
-        startBtn.setOnAction(e -> network.startGame(currentRoomId));
-        
+        startGameButton = UIHelper.createButton("START GAME", UIHelper.PRIMARY_COLOR);
+        startGameButton.setDisable(playerCount < 2);
+        startGameButton.setOnAction(e -> handleStartGameClick());
+
         Button leaveBtn = UIHelper.createButton("LEAVE ROOM", UIHelper.DANGER_COLOR);
-        leaveBtn.setOnAction(e -> {
-            network.leaveRoom(currentRoomId);
-            showMainMenu();
-        });
-        
-        root.getChildren().addAll(title, roomPlayerCount, waitText, startBtn, leaveBtn);
-        
-        waitingRoomLayout = root;
+        leaveBtn.setOnAction(e -> handleLeaveRoomClick());
+
+        root.getChildren().addAll(title, roomPlayerCount, waitText, startGameButton, leaveBtn);
+
         Scene scene = new Scene(root, 600, 500);
         stage.setScene(scene);
     }
-    
-    // Message handlers
-    
+
     public void handleRoomUpdate(Message message) {
-        String[] data = message.getData().split(":");
+        String[] data = message.getData().toString().split(":");
         
         switch (message.getType()) {
-            case "ROOM_CREATED":
-            case "ROOM_JOINED":
+            case MESSAGE_TYPE_ROOM_CREATED:
+            case MESSAGE_TYPE_ROOM_JOINED:
                 if (data.length >= 2) {
                     showWaitingRoom(data[0], Integer.parseInt(data[1]));
                 }
                 break;
                 
-            case "PLAYER_JOINED":
-            case "PLAYER_LEFT":
+            case MESSAGE_TYPE_PLAYER_JOINED:
+            case MESSAGE_TYPE_PLAYER_LEFT:
                 if (data.length >= 2 && roomPlayerCount != null) {
                     int count = Integer.parseInt(data[1]);
                     roomPlayerCount.setText("Players: " + count + "/4");
                     
                     // Enable/disable start button
-                    if (waitingRoomLayout != null) {
-                        for (javafx.scene.Node node : waitingRoomLayout.getChildren()) {
-                            if (node instanceof Button) {
-                                Button btn = (Button) node;
-                                if (btn.getText().contains("START")) {
-                                    btn.setDisable(count < 2);
-                                }
-                            }
-                        }
+                    if (startGameButton != null) {
+                        startGameButton.setDisable(count < 2);
                     }
                 }
                 break;
@@ -195,6 +167,85 @@ public class MenuController {
     }
     
     public void handleJoinFail(Message message) {
-        UIHelper.showError("Error", message.getData());
+        UIHelper.showError("Error", message.getData().toString());
+    }
+
+    /**
+     * Handle single player button click
+     */
+    private void handleSinglePlayerClick() {
+        onStartGame.accept(true);
+    }
+
+    /**
+     * Handle multiplayer button click
+     */
+    private void handleMultiplayerClick() {
+        if (onShowLobby != null) {
+            onShowLobby.run();
+        } else {
+            showMultiplayerOptions();
+        }
+    }
+
+    /**
+     * Handle leaderboard button click
+     */
+    private void handleLeaderboardClick() {
+        network.getLeaderboard();
+        onShowLeaderboard.run();
+    }
+
+    /**
+     * Handle logout button click
+     */
+    private void handleLogoutClick() {
+        if (onLogout != null) {
+            onLogout.run();
+        }
+    }
+
+    /**
+     * Handle back button click from multiplayer options
+     */
+    private void handleBackToMainMenuClick() {
+        showMainMenu();
+    }
+
+    /**
+     * Handle create room button click
+     */
+    private void handleCreateRoomClick() {
+        network.createRoom();
+    }
+
+    /**
+     * Handle join room button click
+     */
+    private void handleJoinRoomClick(String roomId) {
+        if (roomId != null && !roomId.trim().isEmpty()) {
+            network.joinRoom(roomId.trim());
+        } else {
+            UIHelper.showError("Error", "Please enter a valid Room ID");
+        }
+    }
+
+    /**
+     * Handle start game button click
+     */
+    private void handleStartGameClick() {
+        if (currentRoomId != null) {
+            network.startGame(currentRoomId);
+        }
+    }
+
+    /**
+     * Handle leave room button click
+     */
+    private void handleLeaveRoomClick() {
+        if (currentRoomId != null) {
+            network.leaveRoom(currentRoomId);
+        }
+        showMainMenu();
     }
 }

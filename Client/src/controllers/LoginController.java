@@ -39,18 +39,14 @@ public class LoginController {
         root.setPadding(new Insets(50));
         root.setStyle(UIHelper.createSolidBackground("#f0f0f0"));
         
-        // Title
-        Text title = UIHelper.createTitle("🏪 SUPERMARKET GAME");
+        Text title = UIHelper.createTitle("SUPERMARKET GAME");
         
-        // Input fields
         usernameField = UIHelper.createTextField("Username", 300);
         passwordField = UIHelper.createPasswordField("Password", 300);
         
-        // Status label
         statusLabel = new Label();
         statusLabel.setTextFill(javafx.scene.paint.Color.RED);
         
-        // Buttons
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
         
@@ -59,11 +55,9 @@ public class LoginController {
         
         buttonBox.getChildren().addAll(loginBtn, registerBtn);
         
-        // Events
         loginBtn.setOnAction(e -> handleLogin());
         registerBtn.setOnAction(e -> handleRegister());
         
-        // Enter key to login
         passwordField.setOnAction(e -> handleLogin());
         
         root.getChildren().addAll(title, usernameField, passwordField, buttonBox, statusLabel);
@@ -77,14 +71,13 @@ public class LoginController {
         String password = passwordField.getText();
         
         if (username.isEmpty() || password.isEmpty()) {
-            statusLabel.setText("❌ Please fill all fields");
+            statusLabel.setText("Please fill all fields");
             return;
         }
         
-        // Connect if not connected
-        if (!network.isConnected()) {
+        if (network.isConnected()) {
             if (!network.connect()) {
-                statusLabel.setText("❌ Cannot connect to server!");
+                statusLabel.setText("Cannot connect to server!");
                 return;
             }
         }
@@ -98,24 +91,23 @@ public class LoginController {
         String password = passwordField.getText();
         
         if (username.isEmpty() || password.isEmpty()) {
-            statusLabel.setText("❌ Please fill all fields");
+            statusLabel.setText("Please fill all fields");
             return;
         }
         
         if (username.length() < 3) {
-            statusLabel.setText("❌ Username must be at least 3 characters");
+            statusLabel.setText("Username must be at least 3 characters");
             return;
         }
         
         if (password.length() < 4) {
-            statusLabel.setText("❌ Password must be at least 4 characters");
+            statusLabel.setText("Password must be at least 4 characters");
             return;
         }
         
-        // Connect if not connected
-        if (!network.isConnected()) {
+        if (network.isConnected()) {
             if (!network.connect()) {
-                statusLabel.setText("❌ Cannot connect to server!");
+                statusLabel.setText("Cannot connect to server!");
                 return;
             }
         }
@@ -123,11 +115,9 @@ public class LoginController {
         statusLabel.setText("⏳ Registering...");
         network.register(username, password);
     }
-    
-    // Message handlers
-    
-    public void handleLoginSuccess(Message message) {
-        statusLabel.setText("✅ Login successful!");
+
+    public void handleLoginSuccess() {
+        statusLabel.setText("Login successful!");
         onLoginSuccess.run();
     }
     

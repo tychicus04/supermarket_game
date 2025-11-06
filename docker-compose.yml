@@ -8,7 +8,6 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      # Persist database
       - ./data:/app/data
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m

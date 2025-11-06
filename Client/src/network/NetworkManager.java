@@ -7,6 +7,8 @@ import java.net.Socket;
 import java.util.Properties;
 import java.util.function.Consumer;
 
+import static constants.GameConstants.*;
+
 /**
  * Singleton network manager for client-server communication
  */
@@ -60,7 +62,7 @@ public class NetworkManager {
      */
     public boolean connect() {
         try {
-            System.out.println("🔌 Connecting to " + serverHost + ":" + serverPort + "...");
+            System.out.println("Connecting to " + serverHost + ":" + serverPort + "...");
             
             socket = new Socket(serverHost, serverPort);
             out = new ObjectOutputStream(socket.getOutputStream());
@@ -69,11 +71,11 @@ public class NetworkManager {
             connected = true;
             startListening();
             
-            System.out.println("✅ Connected to server");
+            System.out.println("Connected to server");
             return true;
             
         } catch (IOException e) {
-            System.err.println("❌ Connection failed: " + e.getMessage());
+            System.err.println("Connection failed: " + e.getMessage());
             connected = false;
             return false;
         }
@@ -110,10 +112,10 @@ public class NetworkManager {
     /**
      * Send message to server
      */
-    public boolean sendMessage(Message message) {
+    public void sendMessage(Message message) {
         if (!connected) {
-            System.err.println("❌ Not connected to server");
-            return false;
+            System.err.println("Not connected to server");
+            return;
         }
         
         try {
@@ -121,12 +123,10 @@ public class NetworkManager {
                 out.writeObject(message);
                 out.flush();
             }
-            return true;
-            
+
         } catch (IOException e) {
-            System.err.println("❌ Failed to send message: " + e.getMessage());
+            System.err.println("Failed to send message: " + e.getMessage());
             connected = false;
-            return false;
         }
     }
     
@@ -163,47 +163,38 @@ public class NetworkManager {
      * Check if connected
      */
     public boolean isConnected() {
-        return connected && socket != null && !socket.isClosed();
+        return !connected || socket == null || socket.isClosed();
     }
-    
-    /**
-     * Send ping to server
-     */
-    public void sendPing() {
-        sendMessage(new Message("PING", ""));
-    }
-    
-    // Convenience methods for common messages
-    
+
     public void login(String username, String password) {
-        sendMessage(new Message("LOGIN", username + ":" + password));
+        sendMessage(new Message(MESSAGE_TYPE_LOGIN, username + ":" + password));
     }
     
     public void register(String username, String password) {
-        sendMessage(new Message("REGISTER", username + ":" + password));
+        sendMessage(new Message(MESSAGE_TYPE_REGISTER, username + ":" + password));
     }
     
     public void createRoom() {
-        sendMessage(new Message("CREATE_ROOM", ""));
+        sendMessage(new Message(MESSAGE_TYPE_CREATE_ROOM, ""));
     }
     
     public void joinRoom(String roomId) {
-        sendMessage(new Message("JOIN_ROOM", roomId));
+        sendMessage(new Message(MESSAGE_TYPE_JOIN_ROOM, roomId));
     }
     
     public void leaveRoom(String roomId) {
-        sendMessage(new Message("LEAVE_ROOM", roomId));
+        sendMessage(new Message(MESSAGE_TYPE_LEAVE_ROOM, roomId));
     }
     
     public void startGame(String roomId) {
-        sendMessage(new Message("START_GAME", roomId));
+        sendMessage(new Message(MESSAGE_TYPE_START_GAME, roomId));
     }
     
     public void sendScore(String roomId, int score) {
-        sendMessage(new Message("GAME_SCORE", roomId + ":" + score));
+        sendMessage(new Message(MESSAGE_TYPE_GAME_SCORE, roomId + ":" + score));
     }
     
     public void getLeaderboard() {
-        sendMessage(new Message("GET_LEADERBOARD", ""));
+        sendMessage(new Message(MESSAGE_TYPE_LEADERBOARD, ""));
     }
 }

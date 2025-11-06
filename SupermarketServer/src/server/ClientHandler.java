@@ -10,6 +10,8 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
 
+import static constants.GameConstants.*;
+
 /**
  * Handles individual client connections
  */
@@ -37,21 +39,17 @@ public class ClientHandler implements Runnable {
                 handleMessage(message);
             }
         } catch (EOFException e) {
-            // Client disconnected normally - this is expected, not an error
             if (username != null) {
-                System.out.println("📡 Client disconnected: " + username);
+                System.out.println("Client disconnected: " + username);
             }
         } catch (IOException e) {
-            // Network error
-            System.err.println("⚠️ Network error for client " +
+            System.err.println("Network error for client " +
                 (username != null ? username : "unknown") + ": " + e.getMessage());
         } catch (ClassNotFoundException e) {
-            // Message deserialization error
-            System.err.println("❌ Message deserialization error: " + e.getMessage());
+            System.err.println("Message deserialization error: " + e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
-            // Other unexpected errors
-            System.err.println("❌ Unexpected error handling client " +
+            System.err.println("Unexpected error handling client " +
                 (username != null ? username : "unknown") + ": " + e.getMessage());
             e.printStackTrace();
         } finally {
@@ -65,77 +63,77 @@ public class ClientHandler implements Runnable {
     private void handleMessage(Message msg) {
         try {
             switch (msg.getType()) {
-                case "LOGIN":
+                case MESSAGE_TYPE_LOGIN:
                     handleLogin(msg);
                     break;
-                case "REGISTER":
+                case MESSAGE_TYPE_REGISTER:
                     handleRegister(msg);
                     break;
-                case "CREATE_ROOM":
+                case MESSAGE_TYPE_CREATE_ROOM:
                     handleCreateRoom(msg);
                     break;
-                case "JOIN_ROOM":
+                case MESSAGE_TYPE_JOIN_ROOM:
                     handleJoinRoom(msg);
                     break;
-                case "LEAVE_ROOM":
+                case MESSAGE_TYPE_LEAVE_ROOM:
                     handleLeaveRoom(msg);
                     break;
-                case "START_GAME":
+                case MESSAGE_TYPE_START_GAME:
                     handleStartGame(msg);
                     break;
-                case "GAME_SCORE":
+                case MESSAGE_TYPE_GAME_SCORE:
                     handleGameScore(msg);
                     break;
-                case "GET_LEADERBOARD":
+                case MESSAGE_TYPE_LEADERBOARD:
                     handleGetLeaderboard();
                     break;
-                case "C2S_GET_ROOM_LIST":
+                case MESSAGE_TYPE_GET_ROOM_LIST:
                     handleGetRoomList();
                     break;
-                case "C2S_REQUEST_JOIN":
+                case MESSAGE_TYPE_REQUEST_JOIN:
                     handleRequestJoin(msg);
                     break;
-                case "C2S_ACCEPT_JOIN":
+                case MESSAGE_TYPE_ACCEPT_JOIN:
                     handleAcceptJoin(msg);
                     break;
-                case "C2S_REJECT_JOIN":
+                case MESSAGE_TYPE_REJECT_JOIN:
                     handleRejectJoin(msg);
                     break;
-                case "C2S_SEARCH_USERS":
+                case MESSAGE_TYPE_SEARCH_USERS:
                     handleSearchUsers(msg);
                     break;
-                case "C2S_SEND_FRIEND_REQUEST":
+                case MESSAGE_TYPE_SEND_FRIEND_REQUEST:
                     handleSendFriendRequest(msg);
                     break;
-                case "C2S_ACCEPT_FRIEND":
+                case MESSAGE_TYPE_ACCEPT_FRIEND:
                     handleAcceptFriendRequest(msg);
                     break;
-                case "C2S_REJECT_FRIEND":
+                case MESSAGE_TYPE_REJECT_FRIEND:
                     handleRejectFriendRequest(msg);
                     break;
-                case "C2S_GET_FRIENDS":
+                case MESSAGE_TYPE_GET_FRIENDS:
                     handleGetFriends();
                     break;
-                case "C2S_GET_FRIEND_REQUESTS":
+                case MESSAGE_TYPE_GET_FRIEND_REQUESTS:
                     handleGetFriendRequests();
                     break;
-                case "C2S_REMOVE_FRIEND":
+                case MESSAGE_TYPE_REMOVE_FRIEND:
                     handleRemoveFriend(msg);
                     break;
-                case "C2S_INVITE_TO_ROOM":
+                case MESSAGE_TYPE_INVITE_TO_ROOM:
                     handleInviteToRoom(msg);
                     break;
-                case "LOGOUT":
+                case MESSAGE_TYPE_LOGOUT:
                     handleLogout();
                     break;
-                case "PING":
-                    sendMessage(new Message("PONG", ""));
+                case MESSAGE_TYPE_PING:
+                    sendMessage(new Message(MESSAGE_TYPE_PONG, ""));
                     break;
                 default:
-                    System.out.println("⚠️ Unknown message type: " + msg.getType());
+                    System.out.println("Unknown message type: " + msg.getType());
             }
         } catch (Exception e) {
-            System.err.println("❌ Error handling message: " + e.getMessage());
+            System.err.println("Error handling message: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -153,11 +151,11 @@ public class ClientHandler implements Runnable {
         if (database.validateUser(user, pass)) {
             username = user;
             GameServer.registerClient(username, this);
-            sendMessage(new Message("LOGIN_SUCCESS", "Welcome " + username + "!"));
-            System.out.println("✅ Login successful: " + username);
+            sendMessage(new Message(MESSAGE_TYPE_LOGIN_SUCCESS, "Welcome " + username + "!"));
+            System.out.println("Login successful: " + username);
         } else {
-            sendMessage(new Message("LOGIN_FAIL", "Invalid username or password"));
-            System.out.println("❌ Login failed for: " + user);
+            sendMessage(new Message(MESSAGE_TYPE_LOGIN_FAIL, "Invalid username or password"));
+            System.out.println("Login failed for: " + user);
         }
     }
     
@@ -172,27 +170,27 @@ public class ClientHandler implements Runnable {
         String pass = data[1];
         
         if (user.length() < 3) {
-            sendMessage(new Message("REGISTER_FAIL", "Username must be at least 3 characters"));
+            sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, "Username must be at least 3 characters"));
             return;
         }
         
         if (pass.length() < 4) {
-            sendMessage(new Message("REGISTER_FAIL", "Password must be at least 4 characters"));
+            sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, "Password must be at least 4 characters"));
             return;
         }
         
         if (database.registerUser(user, pass)) {
-            sendMessage(new Message("REGISTER_SUCCESS", "Account created! Please login."));
+            sendMessage(new Message(MESSAGE_TYPE_REGISTER_SUCCESS, "Account created! Please login."));
             System.out.println("✅ New user registered: " + user);
         } else {
-            sendMessage(new Message("REGISTER_FAIL", "Username already exists"));
+            sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, "Username already exists"));
             System.out.println("❌ Registration failed (duplicate): " + user);
         }
     }
     
     private void handleCreateRoom(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
         
@@ -200,12 +198,12 @@ public class ClientHandler implements Runnable {
         GameRoom room = GameServer.createRoom(roomId, username);
         room.addPlayer(username);
         
-        sendMessage(new Message("ROOM_CREATED", roomId + ":" + room.getPlayerCount()));
+        sendMessage(new Message(MESSAGE_TYPE_ROOM_CREATED, roomId + ":" + room.getPlayerCount()));
     }
     
     private void handleJoinRoom(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
         
@@ -213,21 +211,21 @@ public class ClientHandler implements Runnable {
         GameRoom room = GameServer.getRoom(roomId);
         
         if (room == null) {
-            sendMessage(new Message("JOIN_FAIL", "Room not found"));
+            sendMessage(new Message(MESSAGE_TYPE_JOIN_FAIL, "Room not found"));
             return;
         }
         
         if (room.addPlayer(username)) {
-            sendMessage(new Message("ROOM_JOINED", roomId + ":" + room.getPlayerCount()));
-            
+            sendMessage(new Message(MESSAGE_TYPE_ROOM_JOINED, roomId + ":" + room.getPlayerCount()));
+
             // Notify all players in room
             GameServer.broadcastToRoom(roomId, 
-                new Message("PLAYER_JOINED", username + ":" + room.getPlayerCount()));
-            
+                new Message(MESSAGE_TYPE_PLAYER_JOINED, username + ":" + room.getPlayerCount()));
+
             System.out.println("👥 " + username + " joined room " + roomId + 
                              " (" + room.getPlayerCount() + "/4)");
         } else {
-            sendMessage(new Message("JOIN_FAIL", "Room is full or you're already in it"));
+            sendMessage(new Message(MESSAGE_TYPE_JOIN_FAIL, "Room is full or you're already in it"));
         }
     }
     
@@ -253,7 +251,7 @@ public class ClientHandler implements Runnable {
                 System.out.println("🗑️ Creator " + username + " left room " + roomId + ", deleting room...");
                 // Notify remaining players
                 GameServer.broadcastToRoom(roomId,
-                    new Message("ROOM_DELETED", "Room creator left. Room has been closed."));
+                    new Message(MESSAGE_TYPE_ROOM_DELETED, "Room creator left. Room has been closed."));
             }
 
             if (shouldDelete) {
@@ -261,20 +259,20 @@ public class ClientHandler implements Runnable {
             } else {
                 // Normal leave - just broadcast update
                 GameServer.broadcastToRoom(roomId,
-                    new Message("PLAYER_LEFT", username + ":" + room.getPlayerCount()));
+                    new Message(MESSAGE_TYPE_PLAYER_LEFT, username + ":" + room.getPlayerCount()));
             }
         }
     }
-    
+
     private void handleStartGame(Message msg) {
-        String roomId = msg.getData();
+        String roomId = (String) msg.getData();
         GameRoom room = GameServer.getRoom(roomId);
         
         if (room != null && room.canStart()) {
-            GameServer.broadcastToRoom(roomId, new Message("GAME_START", ""));
+            GameServer.broadcastToRoom(roomId, new Message(MESSAGE_TYPE_GAME_START, ""));
             System.out.println("🎮 Game started in room: " + roomId);
         } else {
-            sendMessage(new Message("ERROR", "Cannot start game (need 2+ players)"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Cannot start game (need 2+ players)"));
         }
     }
     
@@ -302,7 +300,7 @@ public class ClientHandler implements Runnable {
             if (room != null) {
                 room.updateScore(username, score);
                 GameServer.broadcastToRoom(roomId, 
-                    new Message("SCORE_UPDATE", username + ":" + score));
+                    new Message(MESSAGE_TYPE_SCORE_UPDATE, username + ":" + score));
             }
         }
         
@@ -311,7 +309,7 @@ public class ClientHandler implements Runnable {
     
     private void handleGetLeaderboard() {
         String leaderboard = database.getLeaderboard(10);
-        sendMessage(new Message("LEADERBOARD", leaderboard));
+        sendMessage(new Message(MESSAGE_TYPE_LEADERBOARD, leaderboard));
     }
     
     /**
@@ -319,7 +317,7 @@ public class ClientHandler implements Runnable {
      */
     private void handleGetRoomList() {
         String roomListJson = GameServer.getRoomListJson();
-        sendMessage(new Message("S2C_ROOM_LIST", roomListJson));
+        sendMessage(new Message(MESSAGE_TYPE_S2C_ROOM_LIST, roomListJson));
     }
 
     /**
@@ -327,7 +325,7 @@ public class ClientHandler implements Runnable {
      */
     private void handleRequestJoin(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
 
@@ -335,12 +333,12 @@ public class ClientHandler implements Runnable {
         GameRoom room = GameServer.getRoom(roomId);
 
         if (room == null) {
-            sendMessage(new Message("S2C_JOIN_REQUEST_FAIL", "Room not found"));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST_FAIL, "Room not found"));
             return;
         }
 
         if (room.getPlayerCount() >= 4) {
-            sendMessage(new Message("S2C_JOIN_REQUEST_FAIL", "Room is full"));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST_FAIL, "Room is full"));
             return;
         }
 
@@ -349,13 +347,13 @@ public class ClientHandler implements Runnable {
         ClientHandler creatorHandler = GameServer.getClient(creator);
 
         if (creatorHandler != null) {
-            creatorHandler.sendMessage(new Message("S2C_JOIN_REQUEST",
+            creatorHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST,
                 username + ";" + roomId));
-            sendMessage(new Message("S2C_JOIN_REQUEST_SENT",
+            sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST_SENT,
                 "Join request sent to " + creator));
             System.out.println("📩 " + username + " requested to join room " + roomId);
         } else {
-            sendMessage(new Message("S2C_JOIN_REQUEST_FAIL", "Room creator offline"));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST_FAIL, "Room creator offline"));
         }
     }
 
@@ -374,13 +372,13 @@ public class ClientHandler implements Runnable {
 
         // Check if requester is the room creator
         if (!username.equals(room.getCreator())) {
-            sendMessage(new Message("ERROR", "Only room creator can accept requests"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Only room creator can accept requests"));
             return;
         }
 
         ClientHandler requesterHandler = GameServer.getClient(requestingPlayer);
         if (requesterHandler != null) {
-            requesterHandler.sendMessage(new Message("S2C_JOIN_APPROVED", roomId));
+            requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_APPROVED, roomId));
             System.out.println("✅ " + username + " accepted " + requestingPlayer + "'s join request");
         }
     }
@@ -400,13 +398,13 @@ public class ClientHandler implements Runnable {
 
         // Check if requester is the room creator
         if (!username.equals(room.getCreator())) {
-            sendMessage(new Message("ERROR", "Only room creator can reject requests"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Only room creator can reject requests"));
             return;
         }
 
         ClientHandler requesterHandler = GameServer.getClient(requestingPlayer);
         if (requesterHandler != null) {
-            requesterHandler.sendMessage(new Message("S2C_JOIN_REJECTED",
+            requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REJECTED,
                 "Join request rejected by " + username));
             System.out.println("❌ " + username + " rejected " + requestingPlayer + "'s join request");
         }
@@ -419,13 +417,13 @@ public class ClientHandler implements Runnable {
      */
     private void handleSearchUsers(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
 
         String searchTerm = msg.getData().trim();
         if (searchTerm.length() < 2) {
-            sendMessage(new Message("S2C_SEARCH_RESULTS", "[]"));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_SEARCH_RESULTS, "[]"));
             return;
         }
 
@@ -439,7 +437,7 @@ public class ClientHandler implements Runnable {
         }
         json.append("]");
 
-        sendMessage(new Message("S2C_SEARCH_RESULTS", json.toString()));
+        sendMessage(new Message(MESSAGE_TYPE_S2C_SEARCH_RESULTS, json.toString()));
     }
 
     /**
@@ -447,30 +445,30 @@ public class ClientHandler implements Runnable {
      */
     private void handleSendFriendRequest(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
 
-        String toUser = msg.getData().trim();
+        String toUser = ((String) msg.getData()).trim();
 
         if (toUser.equals(username)) {
-            sendMessage(new Message("S2C_FRIEND_REQUEST_FAIL", "Cannot add yourself"));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUEST_FAIL, "Cannot add yourself"));
             return;
         }
 
         if (database.sendFriendRequest(username, toUser)) {
-            sendMessage(new Message("S2C_FRIEND_REQUEST_SENT",
+            sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUEST_SENT,
                 "Friend request sent to " + toUser));
 
             // Notify the target user if online
             ClientHandler targetHandler = GameServer.getClient(toUser);
             if (targetHandler != null) {
-                targetHandler.sendMessage(new Message("S2C_FRIEND_REQUEST_RECEIVED", username));
+                targetHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUEST_RECEIVED, username));
             }
 
             System.out.println("👥 " + username + " sent friend request to " + toUser);
         } else {
-            sendMessage(new Message("S2C_FRIEND_REQUEST_FAIL",
+            sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUEST_FAIL,
                 "Request already exists or you are already friends"));
         }
     }
@@ -480,19 +478,18 @@ public class ClientHandler implements Runnable {
      */
     private void handleAcceptFriendRequest(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
-
-        String fromUser = msg.getData().trim();
+        String fromUser = ((String) msg.getData()).trim();
 
         if (database.acceptFriendRequest(fromUser, username)) {
-            sendMessage(new Message("S2C_FRIEND_ACCEPTED", fromUser));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_ACCEPTED, fromUser));
 
             // Notify the requester
             ClientHandler requesterHandler = GameServer.getClient(fromUser);
             if (requesterHandler != null) {
-                requesterHandler.sendMessage(new Message("S2C_FRIEND_ACCEPTED", username));
+                requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_ACCEPTED, username));
             }
 
             // Send updated friend lists to both
@@ -503,7 +500,7 @@ public class ClientHandler implements Runnable {
 
             System.out.println("👥 " + username + " accepted friend request from " + fromUser);
         } else {
-            sendMessage(new Message("ERROR", "Failed to accept friend request"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to accept friend request"));
         }
     }
 
@@ -512,17 +509,16 @@ public class ClientHandler implements Runnable {
      */
     private void handleRejectFriendRequest(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
-
-        String fromUser = msg.getData().trim();
+        String fromUser = ((String) msg.getData()).trim();
 
         if (database.rejectFriendRequest(fromUser, username)) {
-            sendMessage(new Message("S2C_FRIEND_REJECTED", fromUser));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REJECTED, fromUser));
             System.out.println("👥 " + username + " rejected friend request from " + fromUser);
         } else {
-            sendMessage(new Message("ERROR", "Failed to reject friend request"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to reject friend request"));
         }
     }
 
@@ -531,7 +527,7 @@ public class ClientHandler implements Runnable {
      */
     private void handleGetFriends() {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
 
@@ -555,7 +551,7 @@ public class ClientHandler implements Runnable {
         }
         json.append("]");
 
-        sendMessage(new Message("S2C_FRIEND_LIST", json.toString()));
+        sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_LIST, json.toString()));
     }
 
     /**
@@ -563,7 +559,7 @@ public class ClientHandler implements Runnable {
      */
     private void handleGetFriendRequests() {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
 
@@ -577,7 +573,7 @@ public class ClientHandler implements Runnable {
         }
         json.append("]");
 
-        sendMessage(new Message("S2C_FRIEND_REQUESTS", json.toString()));
+        sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUESTS, json.toString()));
     }
 
     /**
@@ -585,19 +581,19 @@ public class ClientHandler implements Runnable {
      */
     private void handleRemoveFriend(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
 
         String friendUsername = msg.getData().trim();
 
         if (database.removeFriend(username, friendUsername)) {
-            sendMessage(new Message("S2C_FRIEND_REMOVED", friendUsername));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REMOVED, friendUsername));
 
             // Notify the other user if online
             ClientHandler friendHandler = GameServer.getClient(friendUsername);
             if (friendHandler != null) {
-                friendHandler.sendMessage(new Message("S2C_FRIEND_REMOVED", username));
+                friendHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REMOVED, username));
                 friendHandler.sendFriendList();
             }
 
@@ -606,7 +602,7 @@ public class ClientHandler implements Runnable {
 
             System.out.println("👥 " + username + " removed friend " + friendUsername);
         } else {
-            sendMessage(new Message("ERROR", "Failed to remove friend"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to remove friend"));
         }
     }
 
@@ -615,11 +611,11 @@ public class ClientHandler implements Runnable {
      */
     private void handleInviteToRoom(Message msg) {
         if (username == null) {
-            sendMessage(new Message("ERROR", "Not logged in"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
 
-        String[] parts = msg.getData().split(";");
+        String[] parts = ((String) msg.getData()).split(";");
         if (parts.length != 2) return;
 
         String friendUsername = parts[0];
@@ -627,18 +623,18 @@ public class ClientHandler implements Runnable {
 
         // Check if they are friends
         if (!database.areFriends(username, friendUsername)) {
-            sendMessage(new Message("ERROR", "Can only invite friends"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Can only invite friends"));
             return;
         }
 
         // Send invite to friend if online
         ClientHandler friendHandler = GameServer.getClient(friendUsername);
         if (friendHandler != null) {
-            friendHandler.sendMessage(new Message("S2C_ROOM_INVITE", username + ";" + roomId));
-            sendMessage(new Message("S2C_INVITE_SENT", "Invite sent to " + friendUsername));
+            friendHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_ROOM_INVITE, username + ";" + roomId));
+            sendMessage(new Message(MESSAGE_TYPE_S2C_INVITE_SENT, "Invite sent to " + friendUsername));
             System.out.println("📧 " + username + " invited " + friendUsername + " to room " + roomId);
         } else {
-            sendMessage(new Message("ERROR", "Friend is offline"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Friend is offline"));
         }
     }
 
@@ -647,19 +643,19 @@ public class ClientHandler implements Runnable {
      */
     private void handleLogout() {
         if (username != null) {
-            System.out.println("👋 User logged out: " + username);
+            System.out.println("User logged out: " + username);
 
             // Notify friends that user is now offline
             List<String> friends = database.getFriends(username);
             for (String friend : friends) {
                 ClientHandler friendHandler = GameServer.getClient(friend);
                 if (friendHandler != null) {
-                    friendHandler.sendMessage(new Message("S2C_FRIEND_STATUS_CHANGED",
+                    friendHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_STATUS_CHANGED,
                         username + ";offline"));
                 }
             }
 
-            sendMessage(new Message("LOGOUT_SUCCESS", "Goodbye!"));
+            sendMessage(new Message(MESSAGE_TYPE_LOGOUT_SUCCESS, "Goodbye!"));
         }
 
         // Close connection
@@ -687,7 +683,6 @@ public class ClientHandler implements Runnable {
         running = false;
         
         if (username != null) {
-            // Check all rooms and remove user, delete if needed
             for (String roomId : GameServer.getAllRoomIds()) {
                 GameRoom room = GameServer.getRoom(roomId);
                 if (room != null && room.getPlayers().contains(username)) {
@@ -698,13 +693,13 @@ public class ClientHandler implements Runnable {
                     if (room.isEmpty() || username.equals(creator)) {
                         if (username.equals(creator) && !room.isEmpty()) {
                             GameServer.broadcastToRoom(roomId,
-                                new Message("ROOM_DELETED", "Room creator disconnected. Room closed."));
+                                new Message(MESSAGE_TYPE_ROOM_DELETED, "Room creator disconnected. Room closed."));
                         }
                         GameServer.deleteRoom(roomId);
                         System.out.println("🗑️ Room " + roomId + " deleted (user disconnect)");
                     } else {
                         GameServer.broadcastToRoom(roomId,
-                            new Message("PLAYER_LEFT", username + ":" + room.getPlayerCount()));
+                            new Message(MESSAGE_TYPE_PLAYER_LEFT, username + ":" + room.getPlayerCount()));
                     }
                 }
             }
@@ -717,7 +712,6 @@ public class ClientHandler implements Runnable {
             if (in != null) in.close();
             socket.close();
         } catch (IOException e) {
-            // Ignore
         }
     }
     

@@ -23,36 +23,31 @@ public class GameServer {
     private static DatabaseManager database;
     
     public static void main(String[] args) {
-        System.out.println("═══════════════════════════════════════");
-        System.out.println("   🏪 SUPERMARKET GAME SERVER v1.0");
-        System.out.println("═══════════════════════════════════════");
-        
-        // Initialize database
         database = new DatabaseManager();
         if (!database.initialize()) {
-            System.err.println("❌ Database initialization failed!");
+            System.err.println("Database initialization failed!");
             return;
         }
-        System.out.println("✅ Database initialized successfully");
+        System.out.println("Database initialized successfully");
         
         // Start server
         try {
             ServerSocket serverSocket = new ServerSocket(PORT);
-            System.out.println("✅ Server started on port " + PORT);
-            System.out.println("📡 Waiting for connections...\n");
+            System.out.println("Server started on port " + PORT);
+            System.out.println("Waiting for connections...\n");
             
             // Room cleanup thread
             startRoomCleanupThread();
             
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("🔌 New connection from: " + clientSocket.getInetAddress());
+                System.out.println("New connection from: " + clientSocket.getInetAddress());
                 
                 ClientHandler handler = new ClientHandler(clientSocket, database);
                 new Thread(handler).start();
             }
         } catch (IOException e) {
-            System.err.println("❌ Server error: " + e.getMessage());
+            System.err.println("Server error: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -81,7 +76,7 @@ public class GameServer {
      */
     public static void registerClient(String username, ClientHandler handler) {
         connectedClients.put(username, handler);
-        System.out.println("👤 Player registered: " + username + " (Total: " + connectedClients.size() + ")");
+        System.out.println("Player registered: " + username + " (Total: " + connectedClients.size() + ")");
     }
     
     /**
@@ -89,7 +84,7 @@ public class GameServer {
      */
     public static void unregisterClient(String username) {
         connectedClients.remove(username);
-        System.out.println("👋 Player disconnected: " + username + " (Total: " + connectedClients.size() + ")");
+        System.out.println("Player disconnected: " + username + " (Total: " + connectedClients.size() + ")");
     }
     
     /**
@@ -98,7 +93,7 @@ public class GameServer {
     public static GameRoom createRoom(String roomId, String creator) {
         GameRoom room = new GameRoom(roomId, creator);
         activeRooms.put(roomId, room);
-        System.out.println("🏠 Room created: " + roomId + " by " + creator);
+        System.out.println("Room created: " + roomId + " by " + creator);
         return room;
     }
     

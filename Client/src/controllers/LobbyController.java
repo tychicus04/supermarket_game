@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static constants.GameConstants.*;
+
 /**
  * Lobby Controller - Waiting room with friends list and invite system
  * Displays players, room info, and allows inviting friends
@@ -69,10 +71,10 @@ public class LobbyController {
         createLobbyUI();
 
         // Request friend list and room list from server
-        network.sendMessage(new Message("C2S_GET_FRIENDS", ""));
-        network.sendMessage(new Message("C2S_GET_FRIEND_REQUESTS", ""));
+        network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIENDS, ""));
+        network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
         if (!inRoom) {
-            network.sendMessage(new Message("C2S_GET_ROOM_LIST", ""));
+            network.sendMessage(new Message(MESSAGE_TYPE_GET_ROOM_LIST, ""));
         }
     }
 
@@ -181,7 +183,7 @@ public class LobbyController {
         refreshButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
                 "-fx-font-size: 14px; -fx-cursor: hand;");
         refreshButton.setOnAction(e -> {
-            network.sendMessage(new Message("C2S_GET_ROOM_LIST", ""));
+            network.sendMessage(new Message(MESSAGE_TYPE_GET_ROOM_LIST, ""));
         });
 
         headerBox.getChildren().addAll(roomsTitle, refreshButton);
@@ -223,7 +225,7 @@ public class LobbyController {
 
         Button createRoomButton = UIHelper.createButton("➕ CREATE ROOM", UIHelper.PRIMARY_COLOR);
         createRoomButton.setOnAction(e -> {
-            network.sendMessage(new Message("CREATE_ROOM", ""));
+            network.sendMessage(new Message(MESSAGE_TYPE_CREATE_ROOM, ""));
         });
 
         actions.getChildren().addAll(backButton, createRoomButton);
@@ -363,7 +365,7 @@ public class LobbyController {
         searchButton.setOnAction(e -> {
             String searchTerm = searchField.getText().trim();
             if (searchTerm.length() >= 2) {
-                network.sendMessage(new Message("C2S_SEARCH_USERS", searchTerm));
+                network.sendMessage(new Message(MESSAGE_TYPE_SEARCH_USERS, searchTerm));
             }
         });
 
@@ -392,7 +394,7 @@ public class LobbyController {
         refreshRequestsButton.setStyle("-fx-background-color: #9b59b6; -fx-text-fill: white; " +
                 "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 5px 10px;");
         refreshRequestsButton.setOnAction(e -> {
-            network.sendMessage(new Message("C2S_GET_FRIEND_REQUESTS", ""));
+            network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
         });
 
         requestsSection.getChildren().addAll(requestsLabel, refreshRequestsButton, requestsListBox);
@@ -423,7 +425,7 @@ public class LobbyController {
         refreshFriendsButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
                 "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 5px 10px;");
         refreshFriendsButton.setOnAction(e -> {
-            network.sendMessage(new Message("C2S_GET_FRIENDS", ""));
+            network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIENDS, ""));
         });
 
         friendsSection.getChildren().addAll(friendsTitle, searchSection,
@@ -448,7 +450,7 @@ public class LobbyController {
 
         Button leaveButton = UIHelper.createButton("🚪 LEAVE ROOM", UIHelper.DANGER_COLOR);
         leaveButton.setOnAction(e -> {
-            network.sendMessage(new Message("LEAVE_ROOM", currentRoomId));
+            network.sendMessage(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
             // Navigate back to menu
             if (onBackToMenu != null) {
                 onBackToMenu.run();
@@ -457,7 +459,7 @@ public class LobbyController {
 
         startGameButton = UIHelper.createButton("🎮 START GAME", UIHelper.PRIMARY_COLOR);
         startGameButton.setOnAction(e -> {
-            network.sendMessage(new Message("C2S_START_GAME", currentRoomId));
+            network.sendMessage(new Message(MESSAGE_TYPE_START_GAME, currentRoomId));
         });
         startGameButton.setDisable(playersInRoom.size() < 2);
 
@@ -572,7 +574,7 @@ public class LobbyController {
                 "-fx-padding: 10px 20px;");
         joinButton.setOnAction(e -> {
             String roomId = room.get("roomId");
-            network.sendMessage(new Message("C2S_REQUEST_JOIN", roomId));
+            network.sendMessage(new Message(MESSAGE_TYPE_REQUEST_JOIN, roomId));
             joinButton.setDisable(true);
             joinButton.setText("⏳ Requested...");
         });
@@ -630,7 +632,7 @@ public class LobbyController {
             );
 
             if (accept) {
-                network.sendMessage(new Message("JOIN_ROOM", roomId));
+                network.sendMessage(new Message(MESSAGE_TYPE_JOIN_ROOM, roomId));
             }
         }
     }
@@ -659,9 +661,9 @@ public class LobbyController {
             );
 
             if (accept) {
-                network.sendMessage(new Message("C2S_ACCEPT_JOIN", requesterUsername + ";" + roomId));
+                network.sendMessage(new Message(MESSAGE_TYPE_ACCEPT_JOIN, requesterUsername + ";" + roomId));
             } else {
-                network.sendMessage(new Message("C2S_REJECT_JOIN", requesterUsername + ";" + roomId));
+                network.sendMessage(new Message(MESSAGE_TYPE_REJECT_JOIN, requesterUsername + ";" + roomId));
             }
         }
     }
@@ -673,7 +675,7 @@ public class LobbyController {
         String roomId = message.getData();
         UIHelper.showInfo("Join Approved", "You can now join the room!");
         // Automatically join the room
-        network.sendMessage(new Message("JOIN_ROOM", roomId));
+        network.sendMessage(new Message(MESSAGE_TYPE_JOIN_ROOM, roomId));
     }
 
     /**
@@ -683,7 +685,7 @@ public class LobbyController {
         String reason = message.getData();
         UIHelper.showError("Join Rejected", reason);
         // Refresh room list
-        network.sendMessage(new Message("C2S_GET_ROOM_LIST", ""));
+        network.sendMessage(new Message(MESSAGE_TYPE_GET_ROOM_LIST, ""));
     }
 
     // ==================== UTILITY METHODS ====================
@@ -844,7 +846,7 @@ public class LobbyController {
      * Handle search results
      */
     public void handleSearchResults(Message message) {
-        String json = message.getData();
+        String json = message.getData().toString();
         List<String> results = parseSimpleStringArray(json);
 
         searchResultsBox.getChildren().clear();
@@ -885,7 +887,7 @@ public class LobbyController {
         addButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
                 "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 3px 8px;");
         addButton.setOnAction(e -> {
-            network.sendMessage(new Message("C2S_SEND_FRIEND_REQUEST", username));
+            network.sendMessage(new Message(MESSAGE_TYPE_SEND_FRIEND_REQUEST, username));
             addButton.setDisable(true);
             addButton.setText("✓");
         });
@@ -950,7 +952,7 @@ public class LobbyController {
                 "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
                 "-fx-padding: 6px 12px; -fx-background-radius: 5px;"));
         acceptButton.setOnAction(e -> {
-            network.sendMessage(new Message("C2S_ACCEPT_FRIEND", fromUser));
+            network.sendMessage(new Message(MESSAGE_TYPE_ACCEPT_FRIEND, fromUser));
             friendRequestsBox.getChildren().remove(item);
         });
 
@@ -967,7 +969,7 @@ public class LobbyController {
                 "-fx-font-size: 12px; -fx-font-weight: bold; -fx-cursor: hand; " +
                 "-fx-padding: 6px 12px; -fx-background-radius: 5px;"));
         rejectButton.setOnAction(e -> {
-            network.sendMessage(new Message("C2S_REJECT_FRIEND", fromUser));
+            network.sendMessage(new Message(MESSAGE_TYPE_REJECT_FRIEND, fromUser));
             friendRequestsBox.getChildren().remove(item);
         });
 
@@ -1091,7 +1093,7 @@ public class LobbyController {
                     "-fx-padding: 8px 15px; -fx-background-radius: 6px; " +
                     "-fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.5), 4, 0, 0, 2);"));
             inviteButton.setOnAction(e -> {
-                network.sendMessage(new Message("C2S_INVITE_TO_ROOM",
+                network.sendMessage(new Message(MESSAGE_TYPE_INVITE_TO_ROOM,
                         username + ";" + currentRoomId));
                 UIHelper.showInfo("Invited", "Invitation sent to " + username);
             });
