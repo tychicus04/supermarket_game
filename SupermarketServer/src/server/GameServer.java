@@ -20,6 +20,7 @@ public class GameServer {
     private static final int PORT = 8888;
     private static final Map<String, ClientHandler> connectedClients = new ConcurrentHashMap<String, ClientHandler>();
     private static final Map<String, GameRoom> activeRooms = new ConcurrentHashMap<String, GameRoom>();
+    private static final Map<String, MultiplayerGameSession> gameSessions = new ConcurrentHashMap<String, MultiplayerGameSession>();
     private static DatabaseManager database;
     
     public static void main(String[] args) {
@@ -158,5 +159,54 @@ public class GameServer {
 
         json.append("]");
         return json.toString();
+    }
+
+    /**
+     * Start a multiplayer game session
+     */
+    public static MultiplayerGameSession startGameSession(String roomId) {
+        GameRoom room = activeRooms.get(roomId);
+        if (room == null) {
+            System.err.println("❌ Cannot start game: room not found " + roomId);
+            return null;
+        }
+
+        if (room.getPlayerCount() != 2) {
+            System.err.println("❌ Cannot start game: need exactly 2 players, got " + room.getPlayerCount());
+            return null;
+        }
+
+        MultiplayerGameSession session = new MultiplayerGameSession(roomId, room);
+        gameSessions.put(roomId, session);
+        session.startGame();
+
+        return session;
+    }
+
+    /**
+     * Get active game session
+     */
+    public static MultiplayerGameSession getGameSession(String roomId) {
+        return gameSessions.get(roomId);
+    }
+
+    /**
+     * Remove game session
+     */
+    public static void removeGameSession(String roomId) {
+        MultiplayerGameSession session = gameSessions.remove(roomId);
+        if (session != null) {
+            System.out.println("🗑️ Game session removed: " + roomId);
+        }
+    }
+
+    /**
+     * Handle item selected in multiplayer game
+     */
+    public static void handleItemSelected(String roomId, String username, String itemName) {
+        MultiplayerGameSession session = gameSessions.get(roomId);
+        if (session != null && session.isActive()) {
+            session.handleItemSelected(username, itemName);
+        }
     }
 }

@@ -177,6 +177,21 @@ public class Main extends Application {
                 case MESSAGE_TYPE_SCORE_UPDATE:
                     gameController.handleScoreUpdate(message);
                     break;
+                case MESSAGE_TYPE_S2C_ITEM_CORRECT:
+                    gameController.handleItemCorrect(message);
+                    break;
+                case MESSAGE_TYPE_S2C_ITEM_WRONG:
+                    gameController.handleItemWrong(message);
+                    break;
+                case MESSAGE_TYPE_S2C_NEW_REQUEST:
+                    gameController.handleNewRequest(message);
+                    break;
+                case MESSAGE_TYPE_S2C_GAME_STATE:
+                    gameController.handleGameState(message);
+                    break;
+                case MESSAGE_TYPE_S2C_GAME_OVER:
+                    gameController.handleGameOver(message);
+                    break;
                 case MESSAGE_TYPE_LEADERBOARD:
                     leaderboardController.handleLeaderboard(message);
                     break;

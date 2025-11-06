@@ -1,6 +1,7 @@
 package controllers;
 
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -22,6 +23,7 @@ import network.NetworkManager;
 import utils.AssetManager;
 import utils.SoundManager;
 import utils.UIHelper;
+import constants.GameConstants;
 
 import java.util.*;
 
@@ -37,18 +39,23 @@ public class ImprovedGameController {
 
     // Game state
     private int score = 0;
+    private int opponentScore = 0; // Điểm của đối thủ
     private int timeLeft = 120;
     private int customerTimeout = 10;
+    private int maxCustomerTimeout = 10; // Thời gian chờ tối đa, sẽ giảm dần
+    private static final int MIN_CUSTOMER_TIMEOUT = 3; // Tối thiểu 3 giây
+    private int requestsServed = 0; // Đếm số lần phục vụ để giảm thời gian
     private int combo = 0;
     private int highestCombo = 0;
+    private boolean gameActive = false; // Track game state
 
     // Timelines
     private Timeline gameTimeline;
     private Timeline customerTimeline;
-    private Timeline spawnTimeline;
 
     // UI Components
     private Label scoreLabel;
+    private Label opponentScoreLabel; // Label điểm đối thủ
     private Label comboLabel;
     private Label timeLabel;
     private Label customerTimerLabel;
@@ -59,8 +66,12 @@ public class ImprovedGameController {
 
     // Items
     private List<ItemButton> itemButtons;
-    private Map<ItemButton, Boolean> itemAvailable;
     private String currentRequest;
+    private List<String> availableItems; // Pool items còn lại để spawn
+    private Map<ItemButton, Integer> itemDisplayTime; // Thời gian hiển thị còn lại của mỗi item
+    private Map<ItemButton, Timeline> itemTimers; // Timer cho mỗi item
+    private int baseItemDisplayTime = 8; // Thời gian hiển thị ban đầu (giây)
+    private static final int MIN_ITEM_DISPLAY_TIME = 3; // Tối thiểu 3 giây
 
     private boolean isSinglePlayer;
     private String currentRoomId;
@@ -78,7 +89,9 @@ public class ImprovedGameController {
         this.assets = AssetManager.getInstance();
         this.sound = SoundManager.getInstance();
         this.itemButtons = new ArrayList<>();
-        this.itemAvailable = new HashMap<>();
+        this.availableItems = new ArrayList<>();
+        this.itemDisplayTime = new HashMap<>();
+        this.itemTimers = new HashMap<>();
     }
 
     public void show(boolean isSinglePlayer) {
@@ -89,6 +102,10 @@ public class ImprovedGameController {
     }
 
     public void handleGameStart(Message message) {
+        // Multiplayer game start
+        if (message.getData() != null) {
+            this.currentRoomId = message.getData().toString();
+        }
         startGame();
     }
 
@@ -96,13 +113,151 @@ public class ImprovedGameController {
         System.out.println("Score update: " + message.getData());
     }
 
+    /**
+     * Handle server response when item is selected correctly
+     */
+    public void handleItemCorrect(Message message) {
+        Platform.runLater(() -> {
+            String data = message.getData().toString();
+            String[] parts = data.split("\\|");
+            String itemName = parts[0];
+            int newTimeout = Integer.parseInt(parts[1]);
+            String newRequest = parts[2];
+            int yourScore = Integer.parseInt(parts[3]);
+            int opponentScore = Integer.parseInt(parts[4]);
+
+            // Update scores
+            score = yourScore;
+            opponentScore = this.opponentScore;
+            scoreLabel.setText(String.valueOf(score));
+            if (opponentScoreLabel != null) {
+                opponentScoreLabel.setText(String.valueOf(opponentScore));
+            }
+
+            // Update combo
+            combo++;
+            if (combo > highestCombo) highestCombo = combo;
+            comboLabel.setText("x" + combo);
+
+            // Sound and visual feedback
+            sound.playCorrect();
+            sound.playComboIncrease(combo);
+            sound.playCustomerHappy();
+            updateCustomerMood("happy");
+
+            // Find button and change item
+            Random random = new Random();
+            for (ItemButton btn : itemButtons) {
+                if (btn.getItemName().equals(itemName)) {
+                    flashButton(btn, "#27ae60");
+                    showScorePopup(10 * combo, btn);
+                    String newItem = ALL_ITEMS[random.nextInt(ALL_ITEMS.length)];
+                    btn.changeItem(newItem);
+                    break;
+                }
+            }
+
+            // Update request and timeout
+            maxCustomerTimeout = newTimeout;
+            customerTimeout = newTimeout;
+            currentRequest = newRequest;
+            updateRequestDisplay();
+        });
+    }
+
+    /**
+     * Handle server response when item is selected incorrectly
+     */
+    public void handleItemWrong(Message message) {
+        Platform.runLater(() -> {
+            String itemName = message.getData().toString();
+
+            // Reset combo
+            combo = 0;
+            comboLabel.setText("x1");
+
+            // Sound and visual feedback
+            sound.playWrong();
+            sound.playComboBreak();
+            updateCustomerMood("angry");
+
+            // Find button and flash red
+            for (ItemButton btn : itemButtons) {
+                if (btn.getItemName().equals(itemName)) {
+                    flashButton(btn, "#e74c3c");
+                    shakeNode(btn);
+                    break;
+                }
+            }
+        });
+    }
+
+    /**
+     * Handle new request from server (multiplayer)
+     */
+    public void handleNewRequest(Message message) {
+        Platform.runLater(() -> {
+            String data = message.getData().toString();
+            String[] parts = data.split("\\|");
+            String newRequest = parts[0];
+            int newTimeout = Integer.parseInt(parts[1]);
+
+            currentRequest = newRequest;
+            maxCustomerTimeout = newTimeout;
+            customerTimeout = newTimeout;
+            updateRequestDisplay();
+        });
+    }
+
+    /**
+     * Handle game state update from server
+     */
+    public void handleGameState(Message message) {
+        Platform.runLater(() -> {
+            String data = message.getData().toString();
+            String[] parts = data.split("\\|");
+            int p1Score = Integer.parseInt(parts[0]);
+            int p2Score = Integer.parseInt(parts[1]);
+            int timeLeft = Integer.parseInt(parts[2]);
+
+            // Update UI
+            this.timeLeft = timeLeft;
+            timeLabel.setText(timeLeft + "s");
+
+            // Update scores (determine which is yours)
+            if (opponentScoreLabel != null) {
+                opponentScoreLabel.setText(String.valueOf(p2Score));
+            }
+        });
+    }
+
+    /**
+     * Handle game over from server
+     */
+    public void handleGameOver(Message message) {
+        Platform.runLater(() -> {
+            gameActive = false;
+            endGame();
+        });
+    }
+
     private void startGame() {
         // Reset state
         score = 0;
+        opponentScore = 0;
         timeLeft = 120;
         customerTimeout = 10;
+        maxCustomerTimeout = 10;
+        requestsServed = 0;
         combo = 0;
         highestCombo = 0;
+        gameActive = true;
+        baseItemDisplayTime = 8; // Reset thời gian hiển thị về 8 giây
+
+        // Reset available items pool
+        availableItems.clear();
+        availableItems.addAll(Arrays.asList(ALL_ITEMS));
+        Collections.shuffle(availableItems);
 
         // Play game start sound
         sound.playGameStart();
@@ -111,8 +266,13 @@ public class ImprovedGameController {
         // Create UI
         createGameUI();
 
-        // Start timers
-        startGameTimers();
+        // Start timers (only for single player)
+        if (isSinglePlayer) {
+            startGameTimers();
+        } else {
+            // In multiplayer, only start display timer, game logic handled by server
+            startMultiplayerTimers();
+        }
     }
 
     /**
@@ -185,9 +345,16 @@ public class ImprovedGameController {
         shadow.setRadius(10);
         topBar.setEffect(shadow);
 
-        // Score
-        VBox scoreBox = createStatBox("💰", "Score", "0");
+        // Score (Your score)
+        VBox scoreBox = createStatBox("💰", isSinglePlayer ? "Score" : "You", "0");
         scoreLabel = (Label) ((VBox) scoreBox.getChildren().get(1)).getChildren().get(0);
+
+        // Opponent score (chỉ hiện trong multiplayer)
+        if (!isSinglePlayer) {
+            VBox opponentScoreBox = createStatBox("🎯", "Opponent", "0");
+            opponentScoreLabel = (Label) ((VBox) opponentScoreBox.getChildren().get(1)).getChildren().get(0);
+            topBar.getChildren().add(opponentScoreBox);
+        }
 
         // Combo
         VBox comboBox = createStatBox("🔥", "Combo", "x1");
@@ -306,23 +473,21 @@ public class ImprovedGameController {
         currentRequest = ALL_ITEMS[random.nextInt(ALL_ITEMS.length)];
         updateRequestDisplay();
 
+        // Tạo 9 item buttons, ban đầu tất cả đều ẩn
         for (int i = 0; i < 9; i++) {
-            String itemName = ALL_ITEMS[i];
-            ItemButton itemBtn = new ItemButton(itemName);
-            itemBtn.setDisable(true);
-            itemAvailable.put(itemBtn, false);
-
+            ItemButton itemBtn = new ItemButton(null); // null = ẩn
             itemBtn.setOnAction(e -> handleItemClick(itemBtn, random));
 
             grid.add(itemBtn, i % 3, i / 3);
             itemButtons.add(itemBtn);
         }
 
-        // Start spawn timeline
-        spawnTimeline = new Timeline(new KeyFrame(Duration.seconds(2),
-                e -> spawnItems(random)));
-        spawnTimeline.setCycleCount(Timeline.INDEFINITE);
-        spawnTimeline.play();
+        // Spawn 3 items đầu tiên
+        if (isSinglePlayer) {
+            for (int i = 0; i < 3; i++) {
+                spawnNewItem();
+            }
+        }
 
         return grid;
     }
@@ -333,35 +498,50 @@ public class ImprovedGameController {
     private class ItemButton extends Button {
         private String itemName;
         private ImageView imageView;
+        private boolean isHidden;
 
         public ItemButton(String itemName) {
             this.itemName = itemName;
+            this.isHidden = (itemName == null);
 
             setPrefSize(140, 140);
-            setStyle("-fx-background-color: #bdc3c7; " +
-                    "-fx-background-radius: 15px; " +
-                    "-fx-cursor: hand;");
 
-            // Try to load image
-            Image itemImage = assets.getItemImage(itemName.toLowerCase());
-
-            if (itemImage != null) {
-                imageView = new ImageView(itemImage);
-                imageView.setFitWidth(80);
-                imageView.setFitHeight(80);
-                imageView.setPreserveRatio(true);
-                setGraphic(imageView);
-                setText("");
-            } else {
-                // Fallback to emoji
-                setText(getEmojiForItem(itemName));
+            if (isHidden) {
+                // Ẩn - hiển thị dấu ?
+                setStyle("-fx-background-color: #bdc3c7; " +
+                        "-fx-background-radius: 15px; " +
+                        "-fx-cursor: default;");
+                setText("?");
                 setFont(Font.font(50));
+                setTextFill(Color.web("#7f8c8d"));
+                setDisable(true);
+            } else {
+                // Hiển thị item
+                setStyle("-fx-background-color: #4ecdc4; " +
+                        "-fx-background-radius: 15px; " +
+                        "-fx-cursor: hand;");
+
+                // Try to load image
+                Image itemImage = assets.getItemImage(itemName.toLowerCase());
+
+                if (itemImage != null) {
+                    imageView = new ImageView(itemImage);
+                    imageView.setFitWidth(80);
+                    imageView.setFitHeight(80);
+                    imageView.setPreserveRatio(true);
+                    setGraphic(imageView);
+                    setText("");
+                } else {
+                    // Fallback to emoji
+                    setText(getEmojiForItem(itemName));
+                    setFont(Font.font(50));
+                }
             }
 
             // Hover effect
             setOnMouseEntered(e -> {
-                if (!isDisabled()) {
-                    setStyle("-fx-background-color: #95a5a6; " +
+                if (!isHidden && !isDisabled()) {
+                    setStyle("-fx-background-color: #45b7af; " +
                             "-fx-background-radius: 15px; " +
                             "-fx-cursor: hand; " +
                             "-fx-scale-x: 1.05; " +
@@ -371,8 +551,8 @@ public class ImprovedGameController {
             });
 
             setOnMouseExited(e -> {
-                if (!isDisabled()) {
-                    setStyle("-fx-background-color: #ecf0f1; " +
+                if (!isHidden && !isDisabled()) {
+                    setStyle("-fx-background-color: #4ecdc4; " +
                             "-fx-background-radius: 15px; " +
                             "-fx-cursor: hand;");
                 }
@@ -383,21 +563,37 @@ public class ImprovedGameController {
             return itemName;
         }
 
-        public void show() {
-            String emoji = getEmojiForItem(itemName);
+        public boolean isHidden() {
+            return isHidden;
+        }
 
-            if (imageView != null) {
-                // Show image
-                setGraphic(imageView);
-            } else {
-                // Show emoji
-                setText(emoji);
-            }
-
+        public void showItem(String newItemName) {
+            this.itemName = newItemName;
+            this.isHidden = false;
             setDisable(false);
+
             setStyle("-fx-background-color: #4ecdc4; " +
                     "-fx-background-radius: 15px; " +
                     "-fx-cursor: hand;");
+
+            // Update image or emoji
+            Image itemImage = assets.getItemImage(newItemName.toLowerCase());
+
+            if (itemImage != null) {
+                if (imageView == null) {
+                    imageView = new ImageView();
+                    imageView.setFitWidth(80);
+                    imageView.setFitHeight(80);
+                    imageView.setPreserveRatio(true);
+                }
+                imageView.setImage(itemImage);
+                setGraphic(imageView);
+                setText("");
+            } else {
+                setGraphic(null);
+                setText(getEmojiForItem(newItemName));
+                setFont(Font.font(50));
+            }
 
             // Spawn animation
             setScaleX(0.1);
@@ -409,14 +605,59 @@ public class ImprovedGameController {
             st.play();
         }
 
-        public void hide() {
+        public void hideItem() {
+            this.itemName = null;
+            this.isHidden = true;
             setDisable(true);
+
             setGraphic(null);
             setText("?");
             setFont(Font.font(40));
             setStyle("-fx-background-color: #bdc3c7; " +
                     "-fx-background-radius: 15px; " +
                     "-fx-text-fill: #7f8c8d;");
+
+            // Shrink animation
+            ScaleTransition st = new ScaleTransition(Duration.millis(200), this);
+            st.setToX(0.1);
+            st.setToY(0.1);
+            st.setOnFinished(e -> {
+                setScaleX(1.0);
+                setScaleY(1.0);
+            });
+            st.play();
+        }
+
+        public void changeItem(String newItemName) {
+            this.itemName = newItemName;
+
+            // Update image or emoji
+            Image itemImage = assets.getItemImage(newItemName.toLowerCase());
+
+            if (itemImage != null) {
+                if (imageView == null) {
+                    imageView = new ImageView();
+                    imageView.setFitWidth(80);
+                    imageView.setFitHeight(80);
+                    imageView.setPreserveRatio(true);
+                }
+                imageView.setImage(itemImage);
+                setGraphic(imageView);
+                setText("");
+            } else {
+                setGraphic(null);
+                setText(getEmojiForItem(newItemName));
+                setFont(Font.font(50));
+            }
+
+            // Animation khi thay đổi
+            ScaleTransition st = new ScaleTransition(Duration.millis(200), this);
+            st.setFromX(0.8);
+            st.setFromY(0.8);
+            st.setToX(1.0);
+            st.setToY(1.0);
+            st.setInterpolator(Interpolator.EASE_OUT);
+            st.play();
         }
     }
 
@@ -424,23 +665,30 @@ public class ImprovedGameController {
      * Handle item click
      */
     private void handleItemClick(ItemButton btn, Random random) {
-        if (!itemAvailable.get(btn)) return;
+        if (!gameActive || btn.isHidden()) return;
 
         sound.playPickup();
 
         String itemName = btn.getItemName();
 
-        if (itemName.equals(currentRequest)) {
-            // Correct!
-            handleCorrectItem(btn, random);
+        if (isSinglePlayer) {
+            // Single player: xử lý local
+            if (itemName.equals(currentRequest)) {
+                handleCorrectItem(btn, random);
+            } else {
+                handleWrongItem(btn);
+            }
         } else {
-            // Wrong!
-            handleWrongItem(btn);
+            // Multiplayer: gửi tới server
+            network.sendMessage(new Message(
+                GameConstants.MESSAGE_TYPE_ITEM_SELECTED,
+                currentRoomId + "|" + itemName
+            ));
         }
     }
 
     /**
-     * Handle correct item selection
+     * Handle correct item selection (for single player)
      */
     private void handleCorrectItem(ItemButton btn, Random random) {
         combo++;
@@ -463,15 +711,37 @@ public class ImprovedGameController {
         showScorePopup(points, btn);
         updateCustomerMood("happy");
 
-        // Reset customer timer
-        customerTimeout = 10;
+        // Tăng số lần phục vụ và giảm dần thời gian chờ
+        requestsServed++;
+
+        // Giảm thời gian chờ tối đa sau mỗi 2 lần phục vụ thành công
+        if (requestsServed % 2 == 0 && maxCustomerTimeout > MIN_CUSTOMER_TIMEOUT) {
+            maxCustomerTimeout--;
+            System.out.println("Độ khó tăng! Thời gian chờ giảm xuống: " + maxCustomerTimeout + "s");
+        }
+
+        // Giảm thời gian hiển thị item sau mỗi 3 lần phục vụ
+        if (requestsServed % 3 == 0 && baseItemDisplayTime > MIN_ITEM_DISPLAY_TIME) {
+            baseItemDisplayTime--;
+            System.out.println("Độ khó tăng! Thời gian hiển thị item giảm xuống: " + baseItemDisplayTime + "s");
+        }
+
+        // Reset customer timer với thời gian mới (đã giảm)
+        customerTimeout = maxCustomerTimeout;
 
         // New request
         currentRequest = ALL_ITEMS[random.nextInt(ALL_ITEMS.length)];
         updateRequestDisplay();
 
-        // Hide item
-        hideItem(btn);
+        // Stop timer của item này
+        stopItemTimer(btn);
+
+        // Ẩn item đã chọn
+        btn.hideItem();
+
+        // Spawn item mới sau 0.5s
+        Timeline spawnDelay = new Timeline(new KeyFrame(Duration.millis(500), e -> spawnNewItem()));
+        spawnDelay.play();
     }
 
     /**
@@ -581,40 +851,104 @@ public class ImprovedGameController {
     }
 
     /**
-     * Spawn items randomly
+     * Spawn item mới từ pool luân phiên
      */
-    private void spawnItems(Random random) {
-        List<ItemButton> hiddenButtons = new ArrayList<>();
+    private void spawnNewItem() {
+        if (!gameActive) return;
+
+        // Tìm button đang ẩn
+        ItemButton hiddenBtn = null;
         for (ItemButton btn : itemButtons) {
-            if (!itemAvailable.get(btn)) {
-                hiddenButtons.add(btn);
+            if (btn.isHidden()) {
+                hiddenBtn = btn;
+                break;
             }
         }
 
-        if (!hiddenButtons.isEmpty()) {
-            int spawnCount = Math.min(random.nextInt(2) + 1, hiddenButtons.size());
-            Collections.shuffle(hiddenButtons);
-
-            for (int i = 0; i < spawnCount; i++) {
-                ItemButton btn = hiddenButtons.get(i);
-                btn.show();
-                itemAvailable.put(btn, true);
-            }
+        if (hiddenBtn == null) {
+            // Không còn chỗ trống
+            return;
         }
+
+        // Refill pool nếu hết
+        if (availableItems.isEmpty()) {
+            availableItems.addAll(Arrays.asList(ALL_ITEMS));
+            Collections.shuffle(availableItems);
+        }
+
+        // Lấy item từ pool
+        String itemToSpawn = availableItems.remove(0);
+
+        // Hiển thị item
+        hiddenBtn.showItem(itemToSpawn);
+
+        // Start timer cho item này
+        startItemTimer(hiddenBtn);
     }
 
     /**
-     * Hide item
+     * Start timer cho một item - tự động ẩn sau thời gian
      */
-    private void hideItem(ItemButton btn) {
-        itemAvailable.put(btn, false);
+    private void startItemTimer(ItemButton btn) {
+        // Set thời gian hiển thị
+        itemDisplayTime.put(btn, baseItemDisplayTime);
 
-        // Shrink animation
-        ScaleTransition st = new ScaleTransition(Duration.millis(200), btn);
-        st.setToX(0.1);
-        st.setToY(0.1);
-        st.setOnFinished(e -> btn.hide());
-        st.play();
+        // Tạo timeline countdown
+        Timeline timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            int timeLeft = itemDisplayTime.get(btn) - 1;
+            itemDisplayTime.put(btn, timeLeft);
+
+            // Thay đổi màu button khi sắp hết thời gian
+            if (timeLeft <= 2) {
+                btn.setStyle("-fx-background-color: #e74c3c; " +
+                           "-fx-background-radius: 15px; " +
+                           "-fx-cursor: hand;");
+            } else if (timeLeft <= 4) {
+                btn.setStyle("-fx-background-color: #f39c12; " +
+                           "-fx-background-radius: 15px; " +
+                           "-fx-cursor: hand;");
+            }
+
+            // Hết thời gian - ẩn item và spawn mới
+            if (timeLeft <= 0) {
+                stopItemTimer(btn);
+                btn.hideItem();
+
+                // Spawn item mới sau 0.3s
+                Timeline spawnDelay = new Timeline(new KeyFrame(Duration.millis(300), ev -> spawnNewItem()));
+                spawnDelay.play();
+            }
+        }));
+        timer.setCycleCount(baseItemDisplayTime);
+        timer.play();
+
+        // Lưu timer
+        itemTimers.put(btn, timer);
+    }
+
+    /**
+     * Stop timer của một item
+     */
+    private void stopItemTimer(ItemButton btn) {
+        Timeline timer = itemTimers.get(btn);
+        if (timer != null) {
+            timer.stop();
+            itemTimers.remove(btn);
+        }
+        itemDisplayTime.remove(btn);
+    }
+
+    /**
+     * Stop tất cả item timers
+     */
+    private void stopAllItemTimers() {
+        for (Timeline timer : itemTimers.values()) {
+            if (timer != null) {
+                timer.stop();
+            }
+        }
+        itemTimers.clear();
+        itemDisplayTime.clear();
     }
 
     /**
@@ -625,12 +959,15 @@ public class ImprovedGameController {
         customerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             customerTimeout--;
             customerTimerLabel.setText("⏱ " + customerTimeout + "s");
-            customerBar.setProgress(customerTimeout / 10.0);
 
-            // Color based on time
-            if (customerTimeout <= 3) {
+            // Cập nhật progress bar dựa trên maxCustomerTimeout hiện tại
+            customerBar.setProgress((double) customerTimeout / maxCustomerTimeout);
+
+            // Color based on time (dựa trên phần trăm thời gian còn lại)
+            double timePercent = (double) customerTimeout / maxCustomerTimeout;
+            if (timePercent <= 0.3) {
                 customerBar.setStyle("-fx-accent: #e74c3c;");
-            } else if (customerTimeout <= 6) {
+            } else if (timePercent <= 0.6) {
                 customerBar.setStyle("-fx-accent: #f39c12;");
             } else {
                 customerBar.setStyle("-fx-accent: #4CAF50;");
@@ -665,6 +1002,32 @@ public class ImprovedGameController {
     }
 
     /**
+     * Start multiplayer timers (only for display, logic handled by server)
+     */
+    private void startMultiplayerTimers() {
+        // Customer timeout timer (just for display)
+        customerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            customerTimeout--;
+            customerTimerLabel.setText("⏱ " + customerTimeout + "s");
+
+            // Cập nhật progress bar dựa trên maxCustomerTimeout hiện tại
+            customerBar.setProgress((double) customerTimeout / maxCustomerTimeout);
+
+            // Color based on time (dựa trên phần trăm thời gian còn lại)
+            double timePercent = (double) customerTimeout / maxCustomerTimeout;
+            if (timePercent <= 0.3) {
+                customerBar.setStyle("-fx-accent: #e74c3c;");
+            } else if (timePercent <= 0.6) {
+                customerBar.setStyle("-fx-accent: #f39c12;");
+            } else {
+                customerBar.setStyle("-fx-accent: #4CAF50;");
+            }
+        }));
+        customerTimeline.setCycleCount(Timeline.INDEFINITE);
+        customerTimeline.play();
+    }
+
+    /**
      * Handle customer timeout
      */
     private void handleCustomerTimeout() {
@@ -686,8 +1049,8 @@ public class ImprovedGameController {
                 evt -> requestLabel.setStyle("")));
         flash.play();
 
-        // Reset
-        customerTimeout = 10;
+        // Reset với thời gian chờ hiện tại (đã giảm dần)
+        customerTimeout = maxCustomerTimeout;
         Random random = new Random();
         currentRequest = ALL_ITEMS[random.nextInt(ALL_ITEMS.length)];
         updateRequestDisplay();
@@ -697,10 +1060,12 @@ public class ImprovedGameController {
      * End game
      */
     private void endGame() {
+        gameActive = false;
+
         // Stop timers
         if (gameTimeline != null) gameTimeline.stop();
         if (customerTimeline != null) customerTimeline.stop();
-        if (spawnTimeline != null) spawnTimeline.stop();
+        stopAllItemTimers();
 
         // Stop music
         sound.fadeOutMusic(1.0);
