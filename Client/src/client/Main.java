@@ -32,6 +32,9 @@ public class Main extends Application {
         this.primaryStage = stage;
         primaryStage.setTitle("🏪 Supermarket Game");
         
+        // Initialize assets
+        utils.AssetManager.getInstance();
+        
         // Initialize network
         networkManager = NetworkManager.getInstance();
         networkManager.setMessageHandler(this::handleServerMessage);
@@ -172,25 +175,10 @@ public class Main extends Application {
                     }
                     break;
                 case MESSAGE_TYPE_GAME_START:
-                    gameController.handleGameStart(message);
+                    gameController.handleGameStart();
                     break;
                 case MESSAGE_TYPE_SCORE_UPDATE:
                     gameController.handleScoreUpdate(message);
-                    break;
-                case MESSAGE_TYPE_S2C_ITEM_CORRECT:
-                    gameController.handleItemCorrect(message);
-                    break;
-                case MESSAGE_TYPE_S2C_ITEM_WRONG:
-                    gameController.handleItemWrong(message);
-                    break;
-                case MESSAGE_TYPE_S2C_NEW_REQUEST:
-                    gameController.handleNewRequest(message);
-                    break;
-                case MESSAGE_TYPE_S2C_GAME_STATE:
-                    gameController.handleGameState(message);
-                    break;
-                case MESSAGE_TYPE_S2C_GAME_OVER:
-                    gameController.handleGameOver(message);
                     break;
                 case MESSAGE_TYPE_LEADERBOARD:
                     leaderboardController.handleLeaderboard(message);

@@ -17,7 +17,7 @@ public class AssetManager {
     private static AssetManager instance;
 
     // Cache để lưu assets đã load
-    private Map<String, Image> imageCache;
+    private static Map<String, Image> imageCache;
     private Map<String, AudioClip> soundCache;
     private MediaPlayer backgroundMusic;
 
@@ -27,7 +27,7 @@ public class AssetManager {
     private static final String MUSIC_BASE = "../resources/assets/music/";
 
     // Default fallback (emoji) nếu không có image
-    private boolean useFallback = false;
+    private static boolean useFallback = false;
 
     private AssetManager() {
         imageCache = new HashMap<>();
@@ -156,14 +156,14 @@ public class AssetManager {
     /**
      * Get image by key
      */
-    public Image getImage(String key) {
+    public static Image getImage(String key) {
         return imageCache.get(key);
     }
 
     /**
      * Get item image (with fallback to emoji)
      */
-    public Image getItemImage(String itemName) {
+    public static Image getItemImage(String itemName) {
         String key = "item_" + itemName.toLowerCase();
         Image image = imageCache.get(key);
 
