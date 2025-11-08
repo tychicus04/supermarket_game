@@ -32,6 +32,9 @@ public class Main extends Application {
         this.primaryStage = stage;
         primaryStage.setTitle("🏪 Supermarket Game");
         
+        // Initialize assets
+        utils.AssetManager.getInstance();
+        
         // Initialize network
         networkManager = NetworkManager.getInstance();
         networkManager.setMessageHandler(this::handleServerMessage);
@@ -172,7 +175,7 @@ public class Main extends Application {
                     }
                     break;
                 case MESSAGE_TYPE_GAME_START:
-                    gameController.handleGameStart(message);
+                    gameController.handleGameStart();
                     break;
                 case MESSAGE_TYPE_SCORE_UPDATE:
                     gameController.handleScoreUpdate(message);

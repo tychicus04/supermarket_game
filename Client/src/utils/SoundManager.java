@@ -14,18 +14,19 @@ import java.util.Map;
 public class SoundManager {
     private static SoundManager instance;
 
-    private Map<String, AudioClip> soundEffects;
+    private static Map<String, AudioClip> soundEffects;
     private MediaPlayer backgroundMusic;
 
     private boolean soundEnabled = true;
     private boolean musicEnabled = true;
 
-    private double soundVolume = 1.0;
+    private double soundVolume = 4.0;
     private double musicVolume = 0.5;
 
     private SoundManager() {
         soundEffects = new HashMap<>();
         loadSoundEffects();
+
     }
 
     public static SoundManager getInstance() {
@@ -40,26 +41,25 @@ public class SoundManager {
      */
     private void loadSoundEffects() {
         // Item sounds
-        loadSound("item_correct", "/assets/sounds/effects/item_correct.wav");
-        loadSound("item_wrong", "/assets/sounds/effects/item_wrong.wav");
-        loadSound("item_pickup", "/assets/sounds/effects/item_pickup.wav");
+        loadSound("item_correct", "/resources/assets/sounds/effects/item_correct.wav");
+        loadSound("item_wrong", "/resources/assets/sounds/effects/item_wrong.wav");
+        loadSound("item_pickup", "/resources/assets/sounds/effects/item_pickup.wav");
 
         // Combo sounds
-        loadSound("combo_increase", "/assets/sounds/effects/combo_increase.wav");
-        loadSound("combo_break", "/assets/sounds/effects/combo_break.wav");
+        loadSound("combo_increase", "/resources/assets/sounds/effects/combo_increase.wav");
+        loadSound("combo_break", "/resources/assets/sounds/effects/combo_break.wav");
 
         // Customer sounds
-        loadSound("customer_happy", "/assets/sounds/effects/customer_happy.wav");
-        loadSound("customer_angry", "/assets/sounds/effects/customer_angry.wav");
+        loadSound("customer_happy", "/resources/assets/sounds/effects/customer_happy.wav");
+        loadSound("customer_angry", "/resources/assets/sounds/effects/customer_angry.wav");
 
         // Game sounds
-        loadSound("timer_warning", "/assets/sounds/effects/timer_warning.wav");
-        loadSound("game_over", "/assets/sounds/effects/game_over.wav");
-        loadSound("game_start", "/assets/sounds/effects/game_start.wav");
+        loadSound("timer_warning", "/resources/assets/sounds/effects/timer_warning.wav");
+        loadSound("game_over", "/resources/assets/sounds/effects/game_over.wav");
+        loadSound("game_start", "/resources/assets/sounds/effects/game_start.wav");
 
         // UI sounds
-        loadSound("button_click", "/assets/sounds/effects/button_click.wav");
-        loadSound("button_hover", "/assets/sounds/effects/button_hover.wav");
+        loadSound("button_hover", "/resources/assets/sounds/effects/button_hover.wav");
     }
 
     /**
@@ -287,10 +287,6 @@ public class SoundManager {
 
     public void playGameStart() {
         play("game_start");
-    }
-
-    public void playButtonClick() {
-        play("button_click", 0.3);
     }
 
     public void playButtonHover() {

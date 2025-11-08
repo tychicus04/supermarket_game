@@ -123,6 +123,9 @@ public class ClientHandler implements Runnable {
                 case MESSAGE_TYPE_INVITE_TO_ROOM:
                     handleInviteToRoom(msg);
                     break;
+                case MESSAGE_TYPE_ITEM_SELECTED:
+                    handleItemSelected(msg);
+                    break;
                 case MESSAGE_TYPE_LOGOUT:
                     handleLogout();
                     break;
@@ -268,14 +271,42 @@ public class ClientHandler implements Runnable {
         String roomId = (String) msg.getData();
         GameRoom room = GameServer.getRoom(roomId);
         
-        if (room != null && room.canStart()) {
-            GameServer.broadcastToRoom(roomId, new Message(MESSAGE_TYPE_GAME_START, ""));
+        if (room != null && room.getPlayerCount() == 2) {
+            // Start multiplayer game session
+            MultiplayerGameSession session = GameServer.startGameSession(roomId);
+            if (session != null) {
+                System.out.println("🎮 Multiplayer game started in room: " + roomId);
+            } else {
+                sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to start game"));
+            }
+        } else if (room != null && room.canStart()) {
+            // Legacy support for 2+ players
+            GameServer.broadcastToRoom(roomId, new Message(MESSAGE_TYPE_GAME_START, roomId));
             System.out.println("🎮 Game started in room: " + roomId);
         } else {
-            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Cannot start game (need 2+ players)"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Cannot start game (need exactly 2 players)"));
         }
     }
-    
+
+    /**
+     * Handle item selection in multiplayer game
+     */
+    private void handleItemSelected(Message msg) {
+        if (username == null) return;
+
+        String data = (String) msg.getData();
+        String[] parts = data.split("\\|");
+        if (parts.length != 2) return;
+
+        String roomId = parts[0];
+        String itemName = parts[1];
+
+        System.out.println("📦 " + username + " selected: " + itemName + " in room " + roomId);
+
+        // Forward to game session
+        GameServer.handleItemSelected(roomId, username, itemName);
+    }
+
     private void handleGameScore(Message msg) {
         if (username == null) return;
         
