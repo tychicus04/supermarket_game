@@ -20,8 +20,8 @@ public class SoundManager {
     private boolean soundEnabled = true;
     private boolean musicEnabled = true;
 
-    private double soundVolume = 4.0;
-    private double musicVolume = 0.5;
+    private double soundVolume = 2.0;
+    private double musicVolume = 0.4;
 
     private SoundManager() {
         soundEffects = new HashMap<>();
@@ -57,6 +57,7 @@ public class SoundManager {
         loadSound("timer_warning", "/resources/assets/sounds/effects/timer_warning.wav");
         loadSound("game_over", "/resources/assets/sounds/effects/game_over.wav");
         loadSound("game_start", "/resources/assets/sounds/effects/game_start.wav");
+        loadSound("game_theme", "/resources/assets/sounds/music/game_theme.wav");
 
         // UI sounds
         loadSound("button_hover", "/resources/assets/sounds/effects/button_hover.wav");
@@ -121,7 +122,7 @@ public class SoundManager {
         try {
             stopMusic();
 
-            String path = "/assets/music/" + musicName + ".mp3";
+            String path = "/resources/assets/sounds/music/" + musicName + ".wav";
             String url = getClass().getResource(path).toExternalForm();
 
             Media media = new Media(url);
@@ -287,6 +288,10 @@ public class SoundManager {
 
     public void playGameStart() {
         play("game_start");
+    }
+
+    public void playGameTheme() {
+        playMusic("game_theme");
     }
 
     public void playButtonHover() {
