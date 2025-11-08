@@ -1,0 +1,152 @@
+/* Pixel Art Leaderboard CSS */
+
+/* Root background with leaderboard image */
+.leaderboard-root {
+    -fx-background-image: url('../images/backgrounds/backgroundLeaderBoard.png');
+    -fx-background-size: cover;
+    -fx-background-position: center center;
+    -fx-background-repeat: no-repeat;
+}
+
+/* Container for leaderboard */
+.leaderboard-container {
+    -fx-alignment: top-center;
+    -fx-spacing: 15px;
+    -fx-padding: 30px;
+}
+
+/* Title - pixel style */
+.leaderboard-title {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 28px;
+    -fx-fill: #FFD700;
+}
+
+/* Scroll pane for leaderboard */
+.leaderboard-scroll {
+    -fx-background: transparent;
+    -fx-background-color: rgba(0, 0, 0, 0.3);
+    -fx-border-color: #B77B45;
+    -fx-border-width: 3px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.leaderboard-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.leaderboard-scroll .scroll-bar {
+    -fx-background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Leaderboard box container */
+.leaderboard-box {
+    -fx-alignment: center;
+    -fx-spacing: 10px;
+    -fx-padding: 10px;
+}
+
+/* No data message */
+.no-scores-label {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 18px;
+    -fx-text-fill: #FFF5E3;
+}
+
+/* Loading message */
+.loading-label {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 16px;
+    -fx-text-fill: #FFF5E3;
+}
+
+/* Leaderboard entry base style */
+.leaderboard-entry {
+    -fx-alignment: center;
+    -fx-padding: 12px 15px;
+    -fx-background-color: rgba(255, 255, 255, 0.15);
+    -fx-background-radius: 8px;
+    -fx-border-color: #B77B45;
+    -fx-border-width: 2px;
+    -fx-border-radius: 8px;
+    -fx-spacing: 20px;
+}
+
+.leaderboard-entry:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Top 3 special styles */
+.rank-1 {
+    -fx-border-color: #FFD45E;
+    -fx-border-width: 3px;
+    -fx-background-color: rgba(255, 212, 94, 0.2);
+}
+
+.rank-2 {
+    -fx-border-color: #C0C0C0;
+    -fx-border-width: 3px;
+    -fx-background-color: rgba(192, 192, 192, 0.15);
+}
+
+.rank-3 {
+    -fx-border-color: #CD7F32;
+    -fx-border-width: 3px;
+    -fx-background-color: rgba(205, 127, 50, 0.15);
+}
+
+/* Rank label (number) */
+.rank-label {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFD700;
+}
+
+/* Player name label */
+.player-name-label {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 14px;
+    -fx-text-fill: #FFF5E3;
+}
+
+/* Score label */
+.score-label {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7FE0C4;
+}
+
+/* Back button - pixel style */
+.leaderboard-back-btn {
+    -fx-min-width: 280px;
+    -fx-pref-width: 300px;
+    -fx-pref-height: 55px;
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-color: #E94F37;
+    -fx-border-width: 3px;
+    -fx-border-style: solid;
+    -fx-border-color: #3E2A1C;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-cursor: hand;
+}
+
+.leaderboard-back-btn:hover {
+    -fx-background-color: #FF6B5A;
+}
+
+.leaderboard-back-btn:pressed {
+    -fx-background-color: #D43D2A;
+    -fx-padding: 2 0 0 0;
+}
+
+/* New score highlight animation */
+.new-score-highlight {
+    -fx-background-color: rgba(255, 245, 157, 0.4);
+}

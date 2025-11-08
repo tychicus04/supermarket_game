@@ -1,0 +1,56 @@
+/* ========================================
+   SUPERMARKET TYCOON - Cyberpunk Neon
+   ======================================== */
+
+/* Root */
+.root {
+  -fx-font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* Text fields */
+.text-field, .password-field {
+  -fx-background-color: transparent;
+  -fx-text-fill: white !important;
+  -fx-prompt-text-fill: rgba(0, 255, 255, 0.4) !important;
+  -fx-font-family: 'Consolas';
+}
+
+.text-field:focused, .password-field:focused {
+  -fx-text-fill: white !important;
+}
+
+/* Labels */
+.label {
+  -fx-text-fill: white !important;
+  -fx-font-family: 'Consolas';
+}
+
+/* Status label (error) */
+.status-label {
+  -fx-text-fill: rgb(255, 120, 120) !important;
+  -fx-font-size: 13px;
+  -fx-wrap-text: true;
+}
+
+/* Hint text */
+.hint {
+  -fx-text-fill: rgb(100, 220, 255) !important;
+  -fx-font-size: 11px;
+  -fx-padding: 6 0 0 0;
+}
+
+/* Buttons */
+.button {
+  -fx-text-fill: white !important;
+  -fx-font-family: 'Consolas';
+  -fx-cursor: hand;
+}
+
+.button:hover {
+  -fx-cursor: hand;
+}
+
+/* Text elements */
+.text {
+  -fx-fill: white !important;
+}
