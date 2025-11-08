@@ -219,6 +219,7 @@ public class ImprovedGameController {
         backButton.setOnAction(e -> {
             stopAllTimers();
             onBackToMenu.run();
+            soundManager.stopMusic();
         });
 
         root.getChildren().addAll(title, scoreBox, topGameArea, grid, progressBox, backButton);
@@ -235,6 +236,7 @@ public class ImprovedGameController {
 
         // Bắt đầu game
         handleGameStart();
+        soundManager.playGameStart();
     }
 
     /** Bắt đầu game – GIỮ TÊN */
@@ -247,7 +249,7 @@ public class ImprovedGameController {
         gameStartMillis = System.currentTimeMillis();
         allowedTimeSeconds = 5.0;
 
-        soundManager.playGameStart();
+        soundManager.playGameTheme();
         // Stop existing timers
         stopAllTimers();
 
@@ -468,6 +470,7 @@ public class ImprovedGameController {
     private void endGame() {
         gameEnded = true;
         stopAllTimers();
+        soundManager.stopMusic();
         
         // Hiển thị màn hình game over
         Platform.runLater(() -> {
