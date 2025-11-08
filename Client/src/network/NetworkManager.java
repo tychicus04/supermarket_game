@@ -14,7 +14,6 @@ import static constants.GameConstants.*;
  */
 public class NetworkManager {
     private static NetworkManager instance;
-    
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
