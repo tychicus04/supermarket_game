@@ -19,6 +19,8 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import models.Message;
 import utils.AssetManager;
+import utils.SoundManager;
+
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -34,7 +36,7 @@ public class ImprovedGameController {
 
     private Stage primaryStage;
     private Runnable onBackToMenu;
-    
+
     // ====== Giữ nguyên các field UI đã có trong project ======
     private Label scoreLabel;
     private Label opponentScoreLabel;
@@ -45,6 +47,8 @@ public class ImprovedGameController {
     private ImageView customerImage;
     private VBox root; // giả định layout hiện có
     private HBox itemsRow; // thanh/khung hiện vật phẩm, vẫn hiển thị nhưng bỏ click
+    private SoundManager soundManager;
+
 
     // ====== Gameplay state (MỚI) ======
     // Ma trận cố định 3x3 tất cả vật phẩm: ánh xạ phím 1..9 (hàng-trước-cột)
@@ -78,15 +82,16 @@ public class ImprovedGameController {
     private static final int SEQUENCE_LEN = 4; // độ dài list yêu cầu (có thể chỉnh)
     private static final double MIN_ALLOWED = 2.0;
     private static final int GAME_DURATION_SECONDS = 60; // Thời gian chơi: 1 phút
-    
+
     private boolean isSinglePlayer = true;
     private Label gameTimeLabel; // Hiển thị thời gian còn lại của màn chơi
     private boolean gameEnded = false;
-    
+
     // Constructor
     public ImprovedGameController(Stage stage, Runnable onBackToMenu) {
         this.primaryStage = stage;
         this.onBackToMenu = onBackToMenu;
+        this.soundManager = SoundManager.getInstance();
     }
 
     // ====== Public API (GIỮ NGUYÊN TÊN) ======
@@ -98,7 +103,7 @@ public class ImprovedGameController {
         root = new VBox(16);
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_CENTER);
-        
+
         // Thêm ảnh nền
         Image bgImage = AssetManager.getImage("bg_game");
         if (bgImage != null) {
@@ -122,13 +127,13 @@ public class ImprovedGameController {
         scoreLabel = mkTag("Your Score: 0");
         opponentScoreLabel = mkTag("Opponent: 0");
         timeLabel = mkTag("Time/Req: 5.0s");
-        
+
         // Thêm game timer (thời gian còn lại của màn chơi)
         gameTimeLabel = new Label("⏱️ Time: 1:00");
         gameTimeLabel.setFont(Font.font(20));
         gameTimeLabel.setTextFill(Color.WHITE);
         gameTimeLabel.setStyle("-fx-font-weight: bold; -fx-background-color: rgba(231, 76, 60, 0.8); -fx-padding: 5 15; -fx-background-radius: 10;");
-        
+
         scoreBox.getChildren().addAll(scoreLabel, opponentScoreLabel, timeLabel, gameTimeLabel);
 
         // Load customer image - bắt đầu với neutral (chuyển lên trên)
@@ -136,7 +141,7 @@ public class ImprovedGameController {
         customerImage.setFitWidth(120);
         customerImage.setFitHeight(120);
         setCustomerEmotion("neutral");
-        
+
         // Thêm viền pixel cho customer image
         VBox customerBox = new VBox(8);
         customerBox.setAlignment(Pos.CENTER);
@@ -150,14 +155,14 @@ public class ImprovedGameController {
             "-fx-background-radius: 10; " +
             "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
-        
+
         Label customerTitle = new Label("🎯 CUSTOMER");
         customerTitle.setFont(Font.font("Courier New", 14));
         customerTitle.setTextFill(Color.web("#e74c3c"));
         customerTitle.setStyle("-fx-font-weight: bold;");
-        
+
         customerBox.getChildren().addAll(customerTitle, customerImage);
-        
+
         // Pixel-style order list with decorative border
         requestLabel = new Label("Waiting for game to start...");
         requestLabel.setFont(Font.font("Courier New", 22)); // Pixel-style monospace font
@@ -176,7 +181,7 @@ public class ImprovedGameController {
             "-fx-border-insets: 0; " +
             "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
-        
+
         // HBox để đặt customer và order list cạnh nhau
         HBox topGameArea = new HBox(20, customerBox, requestLabel);
         topGameArea.setAlignment(Pos.CENTER);
@@ -204,7 +209,7 @@ public class ImprovedGameController {
         customerTimerLabel = new Label("");
         customerTimerLabel.setFont(Font.font(14));
         customerTimerLabel.setTextFill(Color.WHITE);
-        
+
         HBox progressBox = new HBox(12, customerBar, customerTimerLabel);
         progressBox.setAlignment(Pos.CENTER);
 
@@ -241,16 +246,17 @@ public class ImprovedGameController {
 
         gameStartMillis = System.currentTimeMillis();
         allowedTimeSeconds = 5.0;
-        
+
+        soundManager.playGameStart();
         // Stop existing timers
         stopAllTimers();
-        
+
         // HUD ticker - cập nhật mỗi 100ms
         hudTicker = new Timeline(
                 new KeyFrame(Duration.millis(100), e -> tickHud()));
         hudTicker.setCycleCount(Animation.INDEFINITE);
         hudTicker.play();
-        
+
         // Game timer - đếm ngược thời gian chơi (60 giây)
         gameTimer = new Timeline(
                 new KeyFrame(Duration.millis(100), e -> updateGameTimer()));
@@ -313,7 +319,7 @@ public class ImprovedGameController {
     /** Xử lý khi người chơi bấm phím */
     private void handleKey(KeyCode code) {
         if (gameEnded || !keyToItem.containsKey(code)) return;
-        
+
         String expect = currentSequence.get(currentIndex);
         String got = keyToItem.get(code);
         if (got.equals(expect)) {
@@ -321,11 +327,13 @@ public class ImprovedGameController {
             currentIndex++;
             flashRequestProgress();
             setCustomerEmotion("happy"); // Customer vui
-            
+            soundManager.playPickup();
+
             if (currentIndex >= currentSequence.size()) {
                 // hoàn tất chuỗi -> +1 điểm, chuyển yêu cầu mới
                 myScore += 1;
                 updateScoreLabels();
+                soundManager.playCorrect();
                 nextRequest();
             }
         } else {
@@ -334,6 +342,7 @@ public class ImprovedGameController {
             updateScoreLabels();
             shakeRequest();
             setCustomerEmotion("angry"); // Customer tức giận
+            soundManager.playWrong();
         }
     }
 
@@ -354,7 +363,7 @@ public class ImprovedGameController {
     private void recomputeAllowedTime() {
         long elapsed = (System.currentTimeMillis() - gameStartMillis) / 1000; // s
         long steps = elapsed / 15; // mỗi 15s giảm 1
-        double t = 10.0 - steps;
+        double t = 15.0 - steps;
         allowedTimeSeconds = Math.max(MIN_ALLOWED, t);
         timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
     }
@@ -402,7 +411,6 @@ public class ImprovedGameController {
             }
             if (i < seq.size() - 1) sb.append("  →  ");
         }
-        sb.append("\n(Use keys 1–9 matching the 3×3 grid)");
         return sb.toString();
     }
 
@@ -555,7 +563,7 @@ public class ImprovedGameController {
         
         // Play game over sound if available
         try {
-            utils.SoundManager.getInstance().playGameOver();
+            soundManager.playGameOver();
         } catch (Exception e) {
             // Sound not available, ignore
         }
