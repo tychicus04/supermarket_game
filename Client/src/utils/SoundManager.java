@@ -133,7 +133,7 @@ public class SoundManager {
             backgroundMusic.setOnError(() -> {
                 System.err.println("Music playback error: " + backgroundMusic.getError().getMessage());
             });
-            
+
             backgroundMusic.play();
 
             System.out.println("Playing music: " + musicName);
