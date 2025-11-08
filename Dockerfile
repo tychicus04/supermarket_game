@@ -14,14 +14,16 @@ RUN wget https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.36.0.3/sqlite-j
 # Copy server and shared source code
 COPY SupermarketServer/src ./server-src
 COPY Shared/src/models ./shared-models
+COPY Shared/src/constants ./shared-constants
 
 # Compile Java source files
 RUN mkdir -p classes && \
     javac -cp "sqlite-jdbc.jar" \
     -d classes \
+    shared-constants/*.java \
+    shared-models/*.java \
     server-src/database/*.java \
-    server-src/server/*.java \
-    shared-models/*.java
+    server-src/server/*.java
 
 # Stage 2: Runtime (JRE for minimal size)
 FROM bellsoft/liberica-openjre-alpine:8
