@@ -218,8 +218,13 @@ public class ImprovedGameController {
         backButton.setStyle("-fx-font-size: 14px; -fx-background-color: #95a5a6; -fx-text-fill: white; -fx-padding: 8 15;");
         backButton.setOnAction(e -> {
             stopAllTimers();
-            onBackToMenu.run();
             soundManager.stopMusic();
+            // Small delay to ensure music stops before starting new one
+            Platform.runLater(() -> {
+                if (onBackToMenu != null) {
+                    onBackToMenu.run();
+                }
+            });
         });
 
         root.getChildren().addAll(title, scoreBox, topGameArea, grid, progressBox, backButton);
@@ -551,9 +556,12 @@ public class ImprovedGameController {
         mainMenuBtn.setOnMouseEntered(e -> mainMenuBtn.setStyle("-fx-background-color: #5dade2; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
         mainMenuBtn.setOnMouseExited(e -> mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
         mainMenuBtn.setOnAction(e -> {
-            if (onBackToMenu != null) {
-                onBackToMenu.run();
-            }
+            soundManager.stopMusic();
+            Platform.runLater(() -> {
+                if (onBackToMenu != null) {
+                    onBackToMenu.run();
+                }
+            });
         });
         
         buttonBox.getChildren().addAll(playAgainBtn, mainMenuBtn);
@@ -759,7 +767,8 @@ public class ImprovedGameController {
         String result = message.getData().toString();
         utils.UIHelper.showInfo("Game Over", result);
         
-        // Show option to go back to menu
+        // Stop music and show option to go back to menu
+        soundManager.stopMusic();
         Platform.runLater(() -> {
             if (onBackToMenu != null) {
                 onBackToMenu.run();

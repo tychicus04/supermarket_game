@@ -195,6 +195,9 @@ public class Main extends Application {
     }
     
     private void handleLogout() {
+        // Stop any playing music
+        utils.SoundManager.getInstance().stopMusic();
+
         // Send logout message to server
         networkManager.sendMessage(new models.Message(MESSAGE_TYPE_LOGOUT, ""));
 

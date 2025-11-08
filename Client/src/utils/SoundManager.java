@@ -6,6 +6,7 @@ import javafx.scene.media.MediaPlayer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * SoundManager - Quản lý âm thanh trong game
@@ -57,7 +58,6 @@ public class SoundManager {
         loadSound("timer_warning", "/resources/assets/sounds/effects/timer_warning.wav");
         loadSound("game_over", "/resources/assets/sounds/effects/game_over.wav");
         loadSound("game_start", "/resources/assets/sounds/effects/game_start.wav");
-        loadSound("game_theme", "/resources/assets/sounds/music/game_theme.wav");
 
         // UI sounds
         loadSound("button_hover", "/resources/assets/sounds/effects/button_hover.wav");
@@ -123,17 +123,23 @@ public class SoundManager {
             stopMusic();
 
             String path = "/resources/assets/sounds/music/" + musicName + ".wav";
-            String url = getClass().getResource(path).toExternalForm();
+            String url = Objects.requireNonNull(getClass().getResource(path)).toExternalForm();
 
             Media media = new Media(url);
             backgroundMusic = new MediaPlayer(media);
             backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
             backgroundMusic.setVolume(musicVolume);
+
+            backgroundMusic.setOnError(() -> {
+                System.err.println("Music playback error: " + backgroundMusic.getError().getMessage());
+            });
+            
             backgroundMusic.play();
 
-            System.out.println("🎵 Playing music: " + musicName);
+            System.out.println("Playing music: " + musicName);
         } catch (Exception e) {
-            System.err.println("⚠️  Music not found: " + musicName);
+            System.err.println("Music not found or cannot play: " + musicName);
+            e.printStackTrace();
         }
     }
 
@@ -292,6 +298,10 @@ public class SoundManager {
 
     public void playGameTheme() {
         playMusic("game_theme");
+    }
+
+    public void playMenuMusic() {
+        playMusic("menu_music");
     }
 
     public void playButtonHover() {

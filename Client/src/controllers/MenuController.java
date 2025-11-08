@@ -16,6 +16,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
+import utils.SoundManager;
 import utils.UIHelper;
 
 import java.util.function.Consumer;
@@ -31,6 +32,7 @@ public class MenuController {
     private Runnable onShowLeaderboard;
     private Runnable onShowLobby;
     private Runnable onLogout;
+    private SoundManager soundManager;
     private NetworkManager network;
     
     private String currentRoomId;
@@ -43,11 +45,13 @@ public class MenuController {
         this.onStartGame = onStartGame;
         this.onShowLeaderboard = onShowLeaderboard;
         this.onShowLobby = onShowLobby;
+        this.soundManager = SoundManager.getInstance();
         this.onLogout = onLogout;
         this.network = NetworkManager.getInstance();
     }
     
     public void show() {
+        soundManager.playMenuMusic();
         showMainMenu();
     }
     

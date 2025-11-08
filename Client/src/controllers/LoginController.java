@@ -112,7 +112,7 @@ public class LoginController {
             }
         }
         
-        statusLabel.setText("⏳ Registering...");
+        statusLabel.setText("Registering...");
         network.register(username, password);
     }
 
@@ -122,15 +122,15 @@ public class LoginController {
     }
     
     public void handleLoginFail(Message message) {
-        statusLabel.setText("❌ " + message.getData());
+        statusLabel.setText(message.getData());
     }
     
     public void handleRegisterSuccess(Message message) {
-        statusLabel.setText("✅ " + message.getData());
+        statusLabel.setText(message.getData());
         UIHelper.showInfo("Success", message.getData());
     }
     
     public void handleRegisterFail(Message message) {
-        statusLabel.setText("❌ " + message.getData());
+        statusLabel.setText(message.getData());
     }
 }
