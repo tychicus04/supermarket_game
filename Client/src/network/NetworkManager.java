@@ -7,9 +7,6 @@ import java.net.Socket;
 import java.util.Properties;
 import java.util.function.Consumer;
 
-/**
- * Singleton network manager for client-server communication
- */
 public class NetworkManager {
     private static NetworkManager instance;
     
@@ -21,6 +18,7 @@ public class NetworkManager {
     private boolean connected = false;
     
     private String serverHost = "localhost";
+//    private String serverHost = "172.11.162.226";
     private int serverPort = 8888;
     
     private NetworkManager() {

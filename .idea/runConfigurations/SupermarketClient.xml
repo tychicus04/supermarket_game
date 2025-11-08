@@ -1,5 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="SupermarketClient" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="liberica-1.8" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="client.Main" />
     <module name="Client" />
     <option name="VM_PARAMETERS" value="-Xms256m -Xmx512m" />
@@ -15,4 +17,3 @@
     </method>
   </configuration>
 </component>
-

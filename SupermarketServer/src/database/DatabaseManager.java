@@ -5,9 +5,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.nio.file.Paths;
 
 public class DatabaseManager {
-    private static final String DB_URL = "jdbc:sqlite:supermarket_game.db";
+    // Use a normalized absolute path to avoid running from the wrong working directory
+    private static final String DB_FILE = "supermarket_game.db";
+    private static final String DB_URL = "jdbc:sqlite:" + Paths.get(DB_FILE).toAbsolutePath();
     private Connection connection;
     
     /**
@@ -20,7 +23,7 @@ public class DatabaseManager {
             
             // Connect to database (creates file if not exists)
             connection = DriverManager.getConnection(DB_URL);
-            
+
             System.out.println("📁 Database: supermarket_game.db");
             
             createTables();
@@ -554,3 +557,4 @@ public class DatabaseManager {
         return 0;
     }
 }
+
