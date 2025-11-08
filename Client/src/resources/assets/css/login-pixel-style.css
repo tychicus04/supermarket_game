@@ -15,7 +15,6 @@
     -fx-border-width: 4px;
     -fx-border-style: solid;
     -fx-padding: 30px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 4, 0, 2, 2);
     -fx-background-radius: 15px;
     -fx-border-radius: 15px;
 }
@@ -35,7 +34,6 @@
     -fx-font-size: 18px;
     -fx-text-fill: #4B2C09;
     -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 2, 0, 1, 1);
 }
 
 /* Input fields - pixel style */
@@ -50,7 +48,6 @@
     -fx-padding: 10px;
     -fx-background-radius: 3px;
     -fx-border-radius: 3px;
-    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.15), 3, 0, 0, 1);
 }
 
 .login-input:focused {
@@ -86,18 +83,15 @@
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 3, 0, 2, 2);
 }
 
 .pixel-btn-login:hover {
     -fx-background-color: #FFB347;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 4, 0, 2, 2);
 }
 
 .pixel-btn-login:pressed {
     -fx-background-color: #FFA826;
     -fx-translate-y: 2px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 1, 0, 1, 1);
 }
 
 /* Register button - pixel style */
@@ -114,18 +108,15 @@
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 3, 0, 2, 2);
 }
 
 .pixel-btn-register:hover {
     -fx-background-color: #FF6B35;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 4, 0, 2, 2);
 }
 
 .pixel-btn-register:pressed {
     -fx-background-color: #FF5520;
     -fx-translate-y: 2px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 1, 0, 1, 1);
 }
 
 /* Status label */
@@ -148,7 +139,6 @@
     -fx-font-style: italic;
     -fx-text-fill: #5B3D1C;
     -fx-opacity: 0.85;
-    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.3), 2, 0, 0, 1);
 }
 
 /* Pixel flicker animation for hover */
@@ -166,4 +156,3 @@
         -fx-opacity: 0.9;
     }
 }
-

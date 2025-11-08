@@ -67,8 +67,8 @@ public class MenuController {
         StackPane.setMargin(menuContainer, new Insets(0, 80, 0, 0));
 
         // Welcome text - pixel style
-        Text welcome = new Text("Welcome! 👋");
-        welcome.getStyleClass().add("menu-welcome");
+//        Text welcome = new Text("Welcome 👋");
+//        welcome.getStyleClass().add("menu-welcome");
 
         // Multiplayer button - purple
         Button multiBtn = new Button("👥 MULTIPLAYER");
@@ -98,10 +98,14 @@ public class MenuController {
             }
         });
 
-        menuContainer.getChildren().addAll(welcome, multiBtn, leaderboardBtn, logoutBtn);
+        menuContainer.getChildren().addAll(multiBtn, leaderboardBtn, logoutBtn);
         root.getChildren().add(menuContainer);
 
-        Scene scene = new Scene(root, 1024, 768);
+        // Lấy kích thước hiện tại của stage để giữ nguyên kích thước/fullscreen
+        double width = stage.getWidth() > 0 ? stage.getWidth() : 1024;
+        double height = stage.getHeight() > 0 ? stage.getHeight() : 768;
+
+        Scene scene = new Scene(root, width, height);
 
         // Load CSS
         try {
@@ -110,11 +114,11 @@ public class MenuController {
                 scene.getStylesheets().add(cssResource.toExternalForm());
             } else {
                 System.err.println("Menu CSS not found, using fallback");
-                applyFallbackMenuStyles(root, welcome, multiBtn, leaderboardBtn, logoutBtn);
+                applyFallbackMenuStyles(root,multiBtn, leaderboardBtn, logoutBtn);
             }
         } catch (Exception e) {
             System.err.println("Failed to load menu CSS: " + e.getMessage());
-            applyFallbackMenuStyles(root, welcome, multiBtn, leaderboardBtn, logoutBtn);
+            applyFallbackMenuStyles(root, multiBtn, leaderboardBtn, logoutBtn);
         }
 
         stage.setScene(scene);
@@ -156,7 +160,7 @@ public class MenuController {
     /**
      * Fallback styles if CSS cannot be loaded
      */
-    private void applyFallbackMenuStyles(StackPane root, Text welcome,
+    private void applyFallbackMenuStyles(StackPane root,
                                          Button multiBtn,
                                          Button leaderboardBtn, Button logoutBtn) {
         // Background
@@ -164,14 +168,16 @@ public class MenuController {
                      "-fx-background-size: cover; -fx-background-position: center center; " +
                      "-fx-background-repeat: no-repeat;");
 
-        // Welcome text
-        welcome.setStyle("-fx-font-family: 'Courier New', monospace; -fx-font-size: 26px; " +
-                        "-fx-fill: white; -fx-stroke: black; -fx-stroke-width: 3px;");
+        // Welcome text - lớn, dễ đọc và nổi bật
+        // Sử dụng font hệ thống đậm để đảm bảo hiển thị nếu font pixel không có sẵn
+//        welcome.setStyle("-fx-font-family: 'Arial Black', 'Impact', sans-serif; -fx-font-size: 44px; " +
+//                        "-fx-font-weight: bold; -fx-fill: #FFD700; " +
+//                        "-fx-stroke: #D32F2F; -fx-stroke-width: 3px;");
 
-        // Button base style
-        String baseStyle = "-fx-min-width: 380px; -fx-pref-width: 400px; -fx-pref-height: 65px; " +
-                          "-fx-font-family: 'Courier New', monospace; -fx-font-size: 16px; " +
-                          "-fx-font-weight: bold; -fx-text-fill: white; " +
+        // Button base style - lớn hơn, chữ màu đen
+        String baseStyle = "-fx-min-width: 380px; -fx-pref-width: 400px; -fx-pref-height: 75px; " +
+                          "-fx-font-family: 'Arial Black', 'Impact', sans-serif; -fx-font-size: 22px; " +
+                          "-fx-font-weight: bold; -fx-text-fill: black; " +
                           "-fx-border-color: #3E2A1C; -fx-border-width: 3px; " +
                           "-fx-background-radius: 8px; -fx-border-radius: 8px; " +
                           "-fx-cursor: hand;";
@@ -215,7 +221,11 @@ public class MenuController {
 
         root.getChildren().addAll(title, createBtn, joinBox, backBtn);
 
-        Scene scene = new Scene(root, 600, 500);
+        // Lấy kích thước hiện tại của stage để giữ nguyên kích thước/fullscreen
+        double width = stage.getWidth() > 0 ? stage.getWidth() : 600;
+        double height = stage.getHeight() > 0 ? stage.getHeight() : 500;
+
+        Scene scene = new Scene(root, width, height);
         stage.setScene(scene);
     }
 
@@ -251,7 +261,12 @@ public class MenuController {
         root.getChildren().addAll(title, roomPlayerCount, waitText, startBtn, leaveBtn);
 
         waitingRoomLayout = root;
-        Scene scene = new Scene(root, 600, 500);
+
+        // Lấy kích thước hiện tại của stage để giữ nguyên kích thước/fullscreen
+        double width = stage.getWidth() > 0 ? stage.getWidth() : 600;
+        double height = stage.getHeight() > 0 ? stage.getHeight() : 500;
+
+        Scene scene = new Scene(root, width, height);
         stage.setScene(scene);
     }
 

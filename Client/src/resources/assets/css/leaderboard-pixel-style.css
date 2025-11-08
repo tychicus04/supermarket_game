@@ -20,9 +20,6 @@
     -fx-font-family: "Press Start 2P", "Courier New", monospace;
     -fx-font-size: 28px;
     -fx-fill: #FFD700;
-    -fx-stroke: #000000;
-    -fx-stroke-width: 3px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 5, 0, 3, 3);
 }
 
 /* Scroll pane for leaderboard */
@@ -55,7 +52,6 @@
     -fx-font-family: "Press Start 2P", "Courier New", monospace;
     -fx-font-size: 18px;
     -fx-text-fill: #FFF5E3;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 3, 0, 2, 2);
 }
 
 /* Loading message */
@@ -63,7 +59,6 @@
     -fx-font-family: "Press Start 2P", "Courier New", monospace;
     -fx-font-size: 16px;
     -fx-text-fill: #FFF5E3;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 3, 0, 2, 2);
 }
 
 /* Leaderboard entry base style */
@@ -80,7 +75,6 @@
 
 .leaderboard-entry:hover {
     -fx-background-color: rgba(255, 255, 255, 0.25);
-    -fx-effect: dropshadow(gaussian, rgba(255, 213, 94, 0.5), 5, 0, 0, 0);
 }
 
 /* Top 3 special styles */
@@ -88,21 +82,18 @@
     -fx-border-color: #FFD45E;
     -fx-border-width: 3px;
     -fx-background-color: rgba(255, 212, 94, 0.2);
-    -fx-effect: dropshadow(gaussian, rgba(255, 212, 94, 0.6), 6, 0, 0, 0);
 }
 
 .rank-2 {
     -fx-border-color: #C0C0C0;
     -fx-border-width: 3px;
     -fx-background-color: rgba(192, 192, 192, 0.15);
-    -fx-effect: dropshadow(gaussian, rgba(192, 192, 192, 0.5), 5, 0, 0, 0);
 }
 
 .rank-3 {
     -fx-border-color: #CD7F32;
     -fx-border-width: 3px;
     -fx-background-color: rgba(205, 127, 50, 0.15);
-    -fx-effect: dropshadow(gaussian, rgba(205, 127, 50, 0.5), 5, 0, 0, 0);
 }
 
 /* Rank label (number) */
@@ -111,7 +102,6 @@
     -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-fill: #FFD700;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 2, 0, 1, 1);
 }
 
 /* Player name label */
@@ -119,7 +109,6 @@
     -fx-font-family: "Press Start 2P", "Courier New", monospace;
     -fx-font-size: 14px;
     -fx-text-fill: #FFF5E3;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 2, 0, 1, 1);
 }
 
 /* Score label */
@@ -128,7 +117,6 @@
     -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-text-fill: #7FE0C4;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 2, 0, 1, 1);
 }
 
 /* Back button - pixel style */
@@ -147,24 +135,18 @@
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 4, 0.7, 3, 3);
 }
 
 .leaderboard-back-btn:hover {
     -fx-background-color: #FF6B5A;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 6, 0.8, 3, 3),
-                innershadow(gaussian, rgba(255, 255, 255, 0.3), 5, 0, 0, 0);
 }
 
 .leaderboard-back-btn:pressed {
     -fx-background-color: #D43D2A;
     -fx-padding: 2 0 0 0;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 2, 0.5, 2, 2);
 }
 
 /* New score highlight animation */
 .new-score-highlight {
     -fx-background-color: rgba(255, 245, 157, 0.4);
-    -fx-effect: dropshadow(gaussian, rgba(255, 213, 94, 0.8), 8, 0, 0, 0);
 }
-

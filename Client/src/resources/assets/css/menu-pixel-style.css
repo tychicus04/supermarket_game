@@ -2,7 +2,7 @@
 
 /* Root background with menu image */
 .menu-root {
-    -fx-background-image: url('../images/backgrounds/backgroundMenu.png');
+    -fx-background-image: url('../images/backgrounds/backgroundMenu1.png');
     -fx-background-size: cover;
     -fx-background-position: center center;
     -fx-background-repeat: no-repeat;
@@ -18,11 +18,10 @@
 /* Welcome text - pixel style */
 .menu-welcome {
     -fx-font-family: "Press Start 2P", "Courier New", monospace;
-    -fx-font-size: 26px;
-    -fx-fill: white;
-    -fx-stroke: #000000;
+    -fx-font-size: 48px; /* Increased size for better visibility */
+    -fx-fill: #FFD700; /* Yellow/gold color like the image */
+    -fx-stroke: #D32F2F; /* Red-orange outline */
     -fx-stroke-width: 3px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 5, 0, 3, 3);
 }
 
 /* Base pixel button style */
@@ -32,23 +31,23 @@
     -fx-pref-width: 400px;
     -fx-pref-height: 65px;
     -fx-font-family: "Press Start 2P", "Courier New", monospace;
-    -fx-font-size: 16px;
+    -fx-font-size: 20px; /* Slightly increased font size */
     -fx-font-weight: bold;
-    -fx-text-fill: white;
+    -fx-text-fill: black; /* Changed text color to black */
     -fx-border-width: 3px;
     -fx-border-style: solid;
     -fx-border-color: #3E2A1C;
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 4, 0.7, 3, 3);
+    /* Removed drop shadow for crisp look; keep buttons flat/professional */
 }
 
+/* If outline for text is needed (for clarity), it can be enabled - for testing */
 .pixel-menu-btn .text {
-    -fx-stroke: #000000;
+    -fx-stroke: #FFFFFF;
     -fx-stroke-width: 1px;
 }
-
 
 /* Multiplayer button - purple */
 .btn-multi {
@@ -57,14 +56,13 @@
 
 .btn-multi:hover {
     -fx-background-color: #C789F2;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 6, 0.8, 3, 3),
-                innershadow(gaussian, rgba(255, 255, 255, 0.3), 5, 0, 0, 0);
+    /* Hover stays color-only for clarity */
 }
 
 .btn-multi:pressed {
     -fx-background-color: #8B5AC1;
     -fx-padding: 2 0 0 0;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 2, 0.5, 2, 2);
+    /* No pressed shadow */
 }
 
 /* Leaderboard button - golden yellow */
@@ -74,14 +72,13 @@
 
 .btn-leaderboard:hover {
     -fx-background-color: #FFD580;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 6, 0.8, 3, 3),
-                innershadow(gaussian, rgba(255, 255, 255, 0.3), 5, 0, 0, 0);
+    /* Hover color-only */
 }
 
 .btn-leaderboard:pressed {
     -fx-background-color: #FFA533;
     -fx-padding: 2 0 0 0;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 2, 0.5, 2, 2);
+    /* No pressed shadow */
 }
 
 /* Logout button - orange */
@@ -91,15 +88,13 @@
 
 .btn-logout:hover {
     -fx-background-color: #F9963D;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 6, 0.8, 3, 3),
-                innershadow(gaussian, rgba(255, 255, 255, 0.3), 5, 0, 0, 0);
+    /* Hover color-only */
 }
 
 .btn-logout:pressed {
     -fx-background-color: #D67530;
     -fx-padding: 2 0 0 0;
-    -fx-effect: dropshadow(gaussian, #3E2A1C, 2, 0.5, 2, 2);
+    /* No pressed shadow */
 }
 
 /* Note: Fade-in animations are handled by Java code, not CSS */
-

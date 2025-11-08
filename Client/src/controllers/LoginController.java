@@ -124,8 +124,12 @@ public class LoginController {
 
         root.getChildren().add(loginBox);
 
+        // Lấy kích thước hiện tại của stage để giữ nguyên kích thước/fullscreen
+        double width = stage.getWidth() > 0 ? stage.getWidth() : 1024;
+        double height = stage.getHeight() > 0 ? stage.getHeight() : 768;
+
         // Create scene with CSS
-        Scene scene = new Scene(root, 1024, 768);
+        Scene scene = new Scene(root, width, height);
 
         // Load CSS file
         try {
