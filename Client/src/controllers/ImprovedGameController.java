@@ -23,7 +23,6 @@ import utils.SoundManager;
 
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Chỉ chỉnh sửa logic gameplay:
@@ -37,7 +36,7 @@ public class ImprovedGameController {
     private Stage primaryStage;
     private Runnable onBackToMenu;
 
-    // ====== Giữ nguyên các field UI đã có trong project ======
+    // UI Components
     private Label scoreLabel;
     private Label opponentScoreLabel;
     private Label timeLabel;
@@ -45,47 +44,47 @@ public class ImprovedGameController {
     private Label customerTimerLabel;
     private ProgressBar customerBar;
     private ImageView customerImage;
-    private VBox root; // giả định layout hiện có
-    private HBox itemsRow; // thanh/khung hiện vật phẩm, vẫn hiển thị nhưng bỏ click
     private SoundManager soundManager;
 
+    private VBox[][] gridCells = new VBox[3][3];
+    private Map<KeyCode, VBox> keyToCellMap = new HashMap<>();
 
-    // ====== Gameplay state (MỚI) ======
-    // Ma trận cố định 3x3 tất cả vật phẩm: ánh xạ phím 1..9 (hàng-trước-cột)
-    // Ví dụ: chị có thể thay thế tên cho khớp asset thực tế trong AssetManager
+    // Gameplay state
     private static final String[][] ITEM_MATRIX = {
-            {"MILK",    "BREAD",   "APPLE"},
-            {"CARROT",  "ORANGE",  "EGGS"},
-            {"CHEESE",  "MEAT",    "SODA"}
+            {"MILK", "BREAD", "APPLE"},
+            {"CARROT", "ORANGE", "EGGS"},
+            {"CHEESE", "MEAT", "SODA"}
     };
 
-    // Map phím số -> item (1..9 theo thứ tự: trên xuống, trái sang phải)
     private final Map<KeyCode, String> keyToItem = new HashMap<>();
 
-    // Yêu cầu hiện tại (list string) và chỉ số đang cần nhập
     private List<String> currentSequence = new ArrayList<>();
     private int currentIndex = 0;
 
-    // Điểm & thời gian
     private int myScore = 0;
-    private int opponentScore = 0; // vẫn giữ để hiển thị
+    private int opponentScore = 0;
     private long gameStartMillis = 0L;
     private long roundStartMillis = 0L;
 
-    // Thời gian cho mỗi yêu cầu (theo độ khó, tự giảm)
-    private double allowedTimeSeconds = 5.0; // mặc định
-    private Timeline roundTimer;              // đếm ngược từng yêu cầu
-    private Timeline hudTicker;               // cập nhật HUD mỗi 100ms
-    private Timeline gameTimer;               // đếm ngược thời gian chơi tổng
+    private double allowedTimeSeconds = 15.0;
+    private Timeline roundTimer;
+    private Timeline hudTicker;
+    private Timeline gameTimer;
 
-    // Các cấu hình nhỏ
-    private static final int SEQUENCE_LEN = 4; // độ dài list yêu cầu (có thể chỉnh)
+    private static final int SEQUENCE_LEN = 4;
     private static final double MIN_ALLOWED = 2.0;
-    private static final int GAME_DURATION_SECONDS = 60; // Thời gian chơi: 1 phút
+    private static final int GAME_DURATION_SECONDS = 60;
 
     private boolean isSinglePlayer = true;
-    private Label gameTimeLabel; // Hiển thị thời gian còn lại của màn chơi
+    private Label gameTimeLabel;
     private boolean gameEnded = false;
+
+    // Visual effect colors
+    private static final Color DEFAULT_BG_COLOR = Color.web("#ecf0f1");
+    private static final Color CORRECT_BG_COLOR = Color.web("#d5f4e6");
+    private static final Color CORRECT_BORDER_COLOR = Color.web("#27ae60");
+    private static final Color WRONG_BG_COLOR = Color.web("#fadbd8");
+    private static final Color WRONG_BORDER_COLOR = Color.web("#e74c3c");
 
     // Constructor
     public ImprovedGameController(Stage stage, Runnable onBackToMenu) {
@@ -94,30 +93,71 @@ public class ImprovedGameController {
         this.soundManager = SoundManager.getInstance();
     }
 
-    // ====== Public API (GIỮ NGUYÊN TÊN) ======
+    // Public API
 
-    /** Màn chơi chính */
+    /**
+     * Reset all game state to initial values
+     * Called when starting a new game or restarting
+     */
+    private void resetGameState() {
+        // Stop any running timers first
+        stopAllTimers();
+
+        // Stop music
+        if (soundManager != null) {
+            soundManager.stopMusic();
+        }
+
+        // Reset scores
+        myScore = 0;
+        opponentScore = 0;
+
+        // Reset timing variables
+        allowedTimeSeconds = 15.0;
+        gameStartMillis = 0L;
+        roundStartMillis = 0L;
+
+        // Reset game state
+        gameEnded = false;
+        currentSequence = new ArrayList<>();
+        currentIndex = 0;
+
+        // Clear mappings (will be recreated)
+        keyToItem.clear();
+        keyToCellMap.clear();
+
+        // Reset grid cells array
+        gridCells = new VBox[3][3];
+
+        System.out.println("Game state reset complete");
+    }
+
+    /**
+     * Main game screen
+     */
     public void show(boolean isSinglePlayer) {
         this.isSinglePlayer = isSinglePlayer;
-        // -- xây UI (giữ cấu trúc cũ, chỉ tóm tắt phần không ảnh hưởng logic) --
-        root = new VBox(16);
+
+        resetGameState();
+
+        VBox root = new VBox(16);
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_CENTER);
 
-        // Thêm ảnh nền
+        // Background image
         Image bgImage = AssetManager.getImage("bg_game");
         if (bgImage != null) {
             BackgroundImage background = new BackgroundImage(
-                bgImage,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundPosition.CENTER,
-                new BackgroundSize(100, 100, true, true, false, true)
+                    bgImage,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundPosition.CENTER,
+                    new BackgroundSize(100, 100, true, true, false, true)
             );
             root.setBackground(new Background(background));
         }
 
-        Label title = new Label("🏪 Supermarket Game");
+        Label title = new Label("Supermarket Game");
         title.setFont(Font.font(28));
         title.setTextFill(Color.WHITE);
         title.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0, 0, 2);");
@@ -128,7 +168,6 @@ public class ImprovedGameController {
         opponentScoreLabel = mkTag("Opponent: 0");
         timeLabel = mkTag("Time/Req: 5.0s");
 
-        // Thêm game timer (thời gian còn lại của màn chơi)
         gameTimeLabel = new Label("⏱️ Time: 1:00");
         gameTimeLabel.setFont(Font.font(20));
         gameTimeLabel.setTextFill(Color.WHITE);
@@ -136,24 +175,23 @@ public class ImprovedGameController {
 
         scoreBox.getChildren().addAll(scoreLabel, opponentScoreLabel, timeLabel, gameTimeLabel);
 
-        // Load customer image - bắt đầu với neutral (chuyển lên trên)
+        // Customer image
         customerImage = new ImageView();
         customerImage.setFitWidth(120);
         customerImage.setFitHeight(120);
         setCustomerEmotion("neutral");
 
-        // Thêm viền pixel cho customer image
         VBox customerBox = new VBox(8);
         customerBox.setAlignment(Pos.CENTER);
         customerBox.setPadding(new Insets(10));
         customerBox.setStyle(
-            "-fx-background-color: #ffffff; " +
-            "-fx-border-color: #e74c3c; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-radius: 10; " +
-            "-fx-background-radius: 10; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
+                "-fx-background-color: #ffffff; " +
+                        "-fx-border-color: #e74c3c; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-radius: 10; " +
+                        "-fx-background-radius: 10; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
 
         Label customerTitle = new Label("🎯 CUSTOMER");
@@ -163,63 +201,92 @@ public class ImprovedGameController {
 
         customerBox.getChildren().addAll(customerTitle, customerImage);
 
-        // Pixel-style order list with decorative border
+        // Order list
         requestLabel = new Label("Waiting for game to start...");
-        requestLabel.setFont(Font.font("Courier New", 22)); // Pixel-style monospace font
+        requestLabel.setFont(Font.font("Courier New", 22));
         requestLabel.setTextFill(Color.web("#2c3e50"));
         requestLabel.setWrapText(true);
         requestLabel.setMaxWidth(500);
         requestLabel.setPadding(new Insets(15, 20, 15, 20));
         requestLabel.setAlignment(Pos.CENTER);
-        // Pixel-style border with retro gaming colors
         requestLabel.setStyle(
-            "-fx-font-weight: bold; " +
-            "-fx-background-color: #fef9e7; " +
-            "-fx-border-color: #34495e; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-insets: 0; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
+                "-fx-font-weight: bold; " +
+                        "-fx-background-color: #fef9e7; " +
+                        "-fx-border-color: #34495e; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-insets: 0; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
 
-        // HBox để đặt customer và order list cạnh nhau
         HBox topGameArea = new HBox(20, customerBox, requestLabel);
         topGameArea.setAlignment(Pos.CENTER);
         topGameArea.setPadding(new Insets(10, 0, 10, 0));
 
-        // Hiển thị bảng 3x3 cố định – mỗi ô gán #n và tên item; bỏ click chuột
+        // Create 3x3 grid with stored references
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setAlignment(Pos.CENTER);
+
+        // Define key arrays
+        KeyCode[] digitKeys = {
+                KeyCode.DIGIT1, KeyCode.DIGIT2, KeyCode.DIGIT3,
+                KeyCode.DIGIT4, KeyCode.DIGIT5, KeyCode.DIGIT6,
+                KeyCode.DIGIT7, KeyCode.DIGIT8, KeyCode.DIGIT9
+        };
+
+        KeyCode[] numpadKeys = {
+                KeyCode.NUMPAD1, KeyCode.NUMPAD2, KeyCode.NUMPAD3,
+                KeyCode.NUMPAD4, KeyCode.NUMPAD5, KeyCode.NUMPAD6,
+                KeyCode.NUMPAD7, KeyCode.NUMPAD8, KeyCode.NUMPAD9
+        };
 
         int id = 1;
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {
                 String name = ITEM_MATRIX[r][c];
                 VBox cell = mkItemCell(id, name);
+                gridCells[r][c] = cell;
                 grid.add(cell, c, r);
+
+                // Map both digit and numpad keys to the same cell
+                int idx = id - 1;
+                keyToCellMap.put(digitKeys[idx], cell);
+                keyToCellMap.put(numpadKeys[idx], cell);
+
                 id++;
             }
         }
 
-        // Thanh tiến độ (đặt bên dưới grid)
+        // Progress bar
         customerBar = new ProgressBar(1);
         customerBar.setPrefWidth(420);
         customerTimerLabel = new Label("");
         customerTimerLabel.setFont(Font.font(14));
-        customerTimerLabel.setTextFill(Color.WHITE);
-
-        HBox progressBox = new HBox(12, customerBar, customerTimerLabel);
+        customerTimerLabel.setTextFill(Color.web("#e74c3c"));
+        VBox progressBox = new VBox(4, customerBar, customerTimerLabel);
         progressBox.setAlignment(Pos.CENTER);
 
-        // Add back button
-        Button backButton = new Button("🔙 Back to Menu");
-        backButton.setStyle("-fx-font-size: 14px; -fx-background-color: #95a5a6; -fx-text-fill: white; -fx-padding: 8 15;");
-        backButton.setOnAction(e -> {
+        // Instructions
+        Label instructions = new Label("Press 1-9 to select items in order!");
+        instructions.setFont(Font.font(16));
+        instructions.setTextFill(Color.WHITE);
+        instructions.setStyle("-fx-background-color: rgba(52, 73, 94, 0.9); -fx-padding: 8 15; -fx-background-radius: 8;");
+
+        Button backBtn = new Button("Back to Menu");
+        backBtn.setStyle(
+                "-fx-font-size: 14px; " +
+                        "-fx-background-color: #e74c3c; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-padding: 10 20; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-cursor: hand;"
+        );
+        backBtn.setOnAction(e -> {
             stopAllTimers();
             soundManager.stopMusic();
-            // Small delay to ensure music stops before starting new one
+            resetGameState();
             Platform.runLater(() -> {
                 if (onBackToMenu != null) {
                     onBackToMenu.run();
@@ -227,335 +294,406 @@ public class ImprovedGameController {
             });
         });
 
-        root.getChildren().addAll(title, scoreBox, topGameArea, grid, progressBox, backButton);
+        root.getChildren().addAll(title, scoreBox, topGameArea, grid, progressBox, instructions, backBtn);
 
         Scene scene = new Scene(root, 1000, 900);
+        scene.setOnKeyPressed(ev -> {
+            if (gameEnded) return;
+
+            KeyCode kc = ev.getCode();
+            // Check if it's a digit key from 1-9 (not 0)
+            if (kc == KeyCode.DIGIT1 || kc == KeyCode.DIGIT2 || kc == KeyCode.DIGIT3 ||
+                    kc == KeyCode.DIGIT4 || kc == KeyCode.DIGIT5 || kc == KeyCode.DIGIT6 ||
+                    kc == KeyCode.DIGIT7 || kc == KeyCode.DIGIT8 || kc == KeyCode.DIGIT9 ||
+                    kc == KeyCode.NUMPAD1 || kc == KeyCode.NUMPAD2 || kc == KeyCode.NUMPAD3 ||
+                    kc == KeyCode.NUMPAD4 || kc == KeyCode.NUMPAD5 || kc == KeyCode.NUMPAD6 ||
+                    kc == KeyCode.NUMPAD7 || kc == KeyCode.NUMPAD8 || kc == KeyCode.NUMPAD9) {
+                handleKeyPress(kc);
+            }
+        });
+
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        // Map phím 1..9 vào item
         initKeyMap();
+        startNewRound();
+        startGameTimer();
 
-        // Đăng ký handler phím – bỏ hoàn toàn click chuột
-        scene.setOnKeyPressed(evt -> handleKey(evt.getCode()));
-
-        // Bắt đầu game
-        handleGameStart();
+        // Play game start and theme music
         soundManager.playGameStart();
-    }
-
-    /** Bắt đầu game – GIỮ TÊN */
-    public void handleGameStart() {
-        myScore = 0;
-        opponentScore = 0;
-        gameEnded = false;
-        updateScoreLabels();
-
-        gameStartMillis = System.currentTimeMillis();
-        allowedTimeSeconds = 5.0;
-
         soundManager.playGameTheme();
-        // Stop existing timers
-        stopAllTimers();
-
-        // HUD ticker - cập nhật mỗi 100ms
-        hudTicker = new Timeline(
-                new KeyFrame(Duration.millis(100), e -> tickHud()));
-        hudTicker.setCycleCount(Animation.INDEFINITE);
-        hudTicker.play();
-
-        // Game timer - đếm ngược thời gian chơi (60 giây)
-        gameTimer = new Timeline(
-                new KeyFrame(Duration.millis(100), e -> updateGameTimer()));
-        gameTimer.setCycleCount(Animation.INDEFINITE);
-        gameTimer.play();
-
-        nextRequest();
-        setCustomerEmotion("neutral");
     }
 
-    /** Cập nhật điểm từ server – GIỮ TÊN */
-    public void handleScoreUpdate(Message message) {
-        // Có thể parse message để cập nhật opponentScore nếu server gửi
-        // Ở client demo: chỉ in log để giữ API
-        System.out.println("Score update: " + message.getData());
-    }
-
-    /** Server báo đúng item – GIỮ TÊN */
-    public void handleItemCorrect(Message message) {
-        // Trong luật mới, điểm chỉ + khi hoàn tất cả chuỗi
-        // Giữ nguyên để không phá API; không cộng lẻ theo item nữa
-        System.out.println("Correct (per-item) ignored – using per-sequence scoring.");
-    }
-
-    /** Server báo sai item – GIỮ TÊN */
-    public void handleItemWrong(Message message) {
-        // Giữ API, nhưng logic trừ điểm đã chuyển sang handleKey()
-        System.out.println("Wrong (per-item) handled locally.");
-    }
-
-    // ====== Logic gameplay MỚI ======
-
-    /** Tạo map phím 1..9 vào item theo ma trận cố định */
     private void initKeyMap() {
-        KeyCode[] keys = {
+        KeyCode[] digitKeys = {
                 KeyCode.DIGIT1, KeyCode.DIGIT2, KeyCode.DIGIT3,
                 KeyCode.DIGIT4, KeyCode.DIGIT5, KeyCode.DIGIT6,
                 KeyCode.DIGIT7, KeyCode.DIGIT8, KeyCode.DIGIT9
         };
-        int idx = 0;
-        for (int r = 0; r < 3; r++) {
-            for (int c = 0; c < 3; c++) {
-                keyToItem.put(keys[idx++], ITEM_MATRIX[r][c]);
-            }
-        }
-        // Trên keypad số (nếu máy có)
-        KeyCode[] numpad = {
+
+        KeyCode[] numpadKeys = {
                 KeyCode.NUMPAD1, KeyCode.NUMPAD2, KeyCode.NUMPAD3,
                 KeyCode.NUMPAD4, KeyCode.NUMPAD5, KeyCode.NUMPAD6,
                 KeyCode.NUMPAD7, KeyCode.NUMPAD8, KeyCode.NUMPAD9
         };
-        idx = 0;
+
+        int idx = 0;
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {
-                keyToItem.put(numpad[idx++], ITEM_MATRIX[r][c]);
+                String itemName = ITEM_MATRIX[r][c];
+                // Map both digit and numpad keys to the same item
+                keyToItem.put(digitKeys[idx], itemName);
+                keyToItem.put(numpadKeys[idx], itemName);
+                idx++;
             }
         }
     }
 
-    /** Xử lý khi người chơi bấm phím */
-    private void handleKey(KeyCode code) {
-        if (gameEnded || !keyToItem.containsKey(code)) return;
+    /**
+     * Handle keyboard input with enhanced visual feedback
+     */
+    private void handleKeyPress(KeyCode kc) {
+        if (currentSequence.isEmpty()) return;
 
-        String expect = currentSequence.get(currentIndex);
-        String got = keyToItem.get(code);
-        if (got.equals(expect)) {
-            // đúng vị trí
+        String expected = currentSequence.get(currentIndex);
+        String pressed = keyToItem.get(kc);
+
+        // Get the cell that was pressed
+        VBox pressedCell = keyToCellMap.get(kc);
+
+        if (pressed != null && pressed.equals(expected)) {
+            highlightCorrectCell(pressedCell);
+
             currentIndex++;
+            requestLabel.setText(renderSequence(currentSequence, currentIndex));
             flashRequestProgress();
-            setCustomerEmotion("happy"); // Customer vui
+            setCustomerEmotion("happy");
+
+            // Play pickup sound for each correct item
             soundManager.playPickup();
 
+            myScore++;
+            updateScoreLabels();
+
             if (currentIndex >= currentSequence.size()) {
-                // hoàn tất chuỗi -> +1 điểm, chuyển yêu cầu mới
-                myScore += 1;
-                updateScoreLabels();
                 soundManager.playCorrect();
-                nextRequest();
+
+                Platform.runLater(() -> {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                    resetAllCellColors();
+                    startNewRound();
+                });
             }
         } else {
-            // sai -> trừ 1 điểm, không chuyển yêu cầu
+            flashWrongCell(pressedCell);
             myScore = Math.max(0, myScore - 1);
             updateScoreLabels();
             shakeRequest();
-            setCustomerEmotion("angry"); // Customer tức giận
+            setCustomerEmotion("angry");
             soundManager.playWrong();
         }
     }
 
-    /** Sinh chuỗi yêu cầu ngẫu nhiên (string) theo ma trận cố định */
-    private List<String> generateSequence(int len) {
-        List<String> flat = new ArrayList<>(9);
-        for (String[] row : ITEM_MATRIX) flat.addAll(Arrays.asList(row));
+    /**
+     * Highlight a cell as correct (green glow effect)
+     */
+    private void highlightCorrectCell(VBox cell) {
+        if (cell == null) return;
 
-        List<String> seq = new ArrayList<>(len);
-        ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        for (int i = 0; i < len; i++) {
-            seq.add(flat.get(rnd.nextInt(flat.size())));
+        // Change background to green with glowing effect
+        cell.setBackground(new Background(new BackgroundFill(
+                CORRECT_BG_COLOR,
+                new CornerRadii(12),
+                Insets.EMPTY
+        )));
+
+        // Add glowing border effect
+        DropShadow glow = new DropShadow();
+        glow.setColor(CORRECT_BORDER_COLOR);
+        glow.setRadius(15);
+        glow.setSpread(0.6);
+        cell.setEffect(glow);
+
+        // Add scale animation
+        ScaleTransition scaleUp = new ScaleTransition(Duration.millis(150), cell);
+        scaleUp.setToX(1.1);
+        scaleUp.setToY(1.1);
+
+        ScaleTransition scaleDown = new ScaleTransition(Duration.millis(150), cell);
+        scaleDown.setToX(1.0);
+        scaleDown.setToY(1.0);
+
+        SequentialTransition seq = new SequentialTransition(scaleUp, scaleDown);
+        seq.play();
+    }
+
+    /**
+     * Flash a cell as wrong (red blink effect) then reset to normal
+     */
+    private void flashWrongCell(VBox cell) {
+        if (cell == null) return;
+
+        // Create blinking animation
+        Timeline blink = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                        e -> {
+                            cell.setBackground(new Background(new BackgroundFill(
+                                    WRONG_BG_COLOR,
+                                    new CornerRadii(12),
+                                    Insets.EMPTY
+                            )));
+                            DropShadow errorGlow = new DropShadow();
+                            errorGlow.setColor(WRONG_BORDER_COLOR);
+                            errorGlow.setRadius(15);
+                            errorGlow.setSpread(0.6);
+                            cell.setEffect(errorGlow);
+                        }
+                ),
+                new KeyFrame(Duration.millis(200),
+                        e -> resetCellColor(cell)
+                ),
+                new KeyFrame(Duration.millis(400),
+                        e -> {
+                            cell.setBackground(new Background(new BackgroundFill(
+                                    WRONG_BG_COLOR,
+                                    new CornerRadii(12),
+                                    Insets.EMPTY
+                            )));
+                            DropShadow errorGlow = new DropShadow();
+                            errorGlow.setColor(WRONG_BORDER_COLOR);
+                            errorGlow.setRadius(15);
+                            errorGlow.setSpread(0.6);
+                            cell.setEffect(errorGlow);
+                        }
+                ),
+                new KeyFrame(Duration.millis(600),
+                        e -> resetCellColor(cell)
+                )
+        );
+        blink.setCycleCount(1);
+        blink.play();
+
+        // Shake animation
+        TranslateTransition shake = new TranslateTransition(Duration.millis(50), cell);
+        shake.setFromX(0);
+        shake.setByX(10);
+        shake.setCycleCount(4);
+        shake.setAutoReverse(true);
+        shake.play();
+    }
+
+    /**
+     * Reset a single cell to default appearance
+     */
+    private void resetCellColor(VBox cell) {
+        if (cell == null) return;
+
+        cell.setBackground(new Background(new BackgroundFill(
+                DEFAULT_BG_COLOR,
+                new CornerRadii(12),
+                Insets.EMPTY
+        )));
+        cell.setEffect(new DropShadow(6, Color.gray(0, 0.15)));
+    }
+
+    /**
+     * Reset all cells to default appearance
+     */
+    private void resetAllCellColors() {
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                resetCellColor(gridCells[r][c]);
+            }
         }
-        return seq;
-    }
 
-    /** Tính allowedTimeSeconds theo độ khó: 5s – mỗi 15s giảm 1s, tối thiểu 1s */
-    private void recomputeAllowedTime() {
-        long elapsed = (System.currentTimeMillis() - gameStartMillis) / 1000; // s
-        long steps = elapsed / 15; // mỗi 15s giảm 1
-        double t = 15.0 - steps;
-        allowedTimeSeconds = Math.max(MIN_ALLOWED, t);
-        timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
-    }
-
-    /** Bắt đầu một yêu cầu mới */
-    private void nextRequest() {
-        // Chốt độ khó tại thời điểm ra đề
-        recomputeAllowedTime();
-
-        currentSequence = generateSequence(SEQUENCE_LEN);
-        currentIndex = 0;
-        requestLabel.setText(renderSequence(currentSequence, currentIndex));
+        // Also reset request label to default
         requestLabel.setTextFill(Color.web("#2c3e50"));
-        // Reset về style mặc định
         requestLabel.setStyle(
-            "-fx-font-weight: bold; " +
-            "-fx-background-color: #fef9e7; " +
-            "-fx-border-color: #34495e; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-insets: 0; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
+                "-fx-font-weight: bold; " +
+                        "-fx-background-color: #fef9e7; " +
+                        "-fx-border-color: #34495e; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-insets: 0; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
-
-        // Reset/bắt timer cho yêu cầu này
-        if (roundTimer != null) roundTimer.stop();
-        roundStartMillis = System.currentTimeMillis();
-
-        roundTimer = new Timeline(
-                new KeyFrame(Duration.ZERO, e -> updateRoundCountdown()),
-                new KeyFrame(Duration.millis(100))
-        );
-        roundTimer.setCycleCount(Animation.INDEFINITE);
-        roundTimer.play();
     }
 
-    /** Hiển thị chuỗi yêu cầu, đánh dấu tiến độ (đã nhập/đang chờ) */
-    private String renderSequence(List<String> seq, int index) {
+    private void startNewRound() {
+        if (gameEnded) {
+            System.out.println("startNewRound called but game has ended - skipping");
+            return;
+        }
+
+        currentSequence = genSeq();
+        currentIndex = 0;
+        roundStartMillis = System.currentTimeMillis();
+        requestLabel.setText(renderSequence(currentSequence, currentIndex));
+        resetAllCellColors();
+        setCustomerEmotion("neutral");
+
+        if (roundTimer != null) roundTimer.stop();
+        roundTimer = new Timeline(new KeyFrame(Duration.millis(50), ev -> {
+            double el = (System.currentTimeMillis() - roundStartMillis) / 1000.0;
+            double rem = allowedTimeSeconds - el;
+            if (rem <= 0) {
+                roundTimer.stop();
+                onRoundTimeout();
+            } else {
+                customerBar.setProgress(rem / allowedTimeSeconds);
+                customerTimerLabel.setText(String.format("%.1fs", rem));
+            }
+        }));
+        roundTimer.setCycleCount(Timeline.INDEFINITE);
+        roundTimer.play();
+
+        if (hudTicker == null || hudTicker.getStatus() != Timeline.Status.RUNNING) {
+            hudTicker = new Timeline(new KeyFrame(Duration.millis(100), ev -> {
+                long played = System.currentTimeMillis() - gameStartMillis;
+                double sec = played / 1000.0;
+                if (sec >= 15 && allowedTimeSeconds > MIN_ALLOWED) {
+                    allowedTimeSeconds = Math.max(MIN_ALLOWED, allowedTimeSeconds - 0.1);
+                    timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
+                }
+            }));
+            hudTicker.setCycleCount(Timeline.INDEFINITE);
+            hudTicker.play();
+        }
+    }
+
+    /**
+     * Called when time runs out for current round
+     * Reset all cells even if incomplete
+     */
+    private void onRoundTimeout() {
+        if (gameEnded) return;
+
+        setCustomerEmotion("angry");
+        shakeRequest();
+
+        // Reset all cell colors when timeout
+        resetAllCellColors();
+
+        // Start new round after brief delay
+        PauseTransition pause = new PauseTransition(Duration.millis(800));
+        pause.setOnFinished(e -> {
+            if (!gameEnded) {
+                startNewRound();
+            }
+        });
+        pause.play();
+    }
+
+    private void startGameTimer() {
+        gameStartMillis = System.currentTimeMillis();
+        gameEnded = false;
+        gameTimer = new Timeline(new KeyFrame(Duration.millis(100), ev -> {
+            long elapsed = System.currentTimeMillis() - gameStartMillis;
+            long remaining = (GAME_DURATION_SECONDS * 1000L) - elapsed;
+
+            if (remaining <= 0) {
+                gameTimer.stop();
+                endGame();
+            } else {
+                int seconds = (int) (remaining / 1000);
+                int minutes = seconds / 60;
+                seconds = seconds % 60;
+                gameTimeLabel.setText(String.format("Time: %d:%02d", minutes, seconds));
+
+                if (remaining < 10000) {
+                    gameTimeLabel.setStyle("-fx-font-weight: bold; -fx-background-color: rgba(231, 76, 60, 0.95); -fx-padding: 5 15; -fx-background-radius: 10;");
+                }
+            }
+        }));
+        gameTimer.setCycleCount(Timeline.INDEFINITE);
+        gameTimer.play();
+    }
+
+    private List<String> genSeq() {
+        List<String> all = new ArrayList<>();
+        for (String[] row : ITEM_MATRIX) {
+            all.addAll(Arrays.asList(row));
+        }
+        Collections.shuffle(all);
+        return all.subList(0, Math.min(SEQUENCE_LEN, all.size()));
+    }
+
+    private String renderSequence(List<String> seq, int idx) {
+        if (seq.isEmpty()) return "Waiting...";
         StringBuilder sb = new StringBuilder("Order: ");
         for (int i = 0; i < seq.size(); i++) {
-            if (i == index) {
-                sb.append("[").append(seq.get(i)).append("]");
-            } else {
-                sb.append(seq.get(i));
-            }
-            if (i < seq.size() - 1) sb.append("  →  ");
+            if (i == idx) sb.append("➤ ");
+            sb.append(seq.get(i));
+            if (i < seq.size() - 1) sb.append(", ");
         }
         return sb.toString();
     }
 
-    /** Mỗi 100ms cập nhật HUD, giảm allowedTime theo mốc 15s */
-    private void tickHud() {
-        recomputeAllowedTime(); // để label luôn phản ánh độ khó hiện tại
+    public void handleGameStart() {
+        System.out.println("Game started!");
     }
 
-    /** Cập nhật đồng hồ cho yêu cầu hiện tại; hết giờ -> chuyển đề KHÔNG trừ điểm */
-    private void updateRoundCountdown() {
-        if (gameEnded) return;
-        
-        long elapsedMs = System.currentTimeMillis() - roundStartMillis;
-        double remain = allowedTimeSeconds - (elapsedMs / 1000.0);
-        if (remain <= 0) {
-            // Hết thời gian của yêu cầu này: KHÔNG trừ điểm, chỉ chuyển yêu cầu mới
-            nextRequest();
-            setCustomerEmotion("neutral");
-            return;
-        }
-        customerTimerLabel.setText(String.format("Remain: %.1fs", Math.max(0, remain)));
-        customerBar.setProgress(Math.max(0, remain / Math.max(1.0, allowedTimeSeconds)));
-        // cập nhật tiến độ trong label
-        requestLabel.setText(renderSequence(currentSequence, currentIndex));
+    public void handleScoreUpdate(Message message) {
+        System.out.println("Score update: " + message.getData());
     }
-    
-    /** Cập nhật thời gian còn lại của màn chơi (60 giây) */
-    private void updateGameTimer() {
-        if (gameEnded) return;
-        
-        long elapsedMs = System.currentTimeMillis() - gameStartMillis;
-        double elapsedSeconds = elapsedMs / 1000.0;
-        double remainSeconds = GAME_DURATION_SECONDS - elapsedSeconds;
-        
-        if (remainSeconds <= 0) {
-            // Hết thời gian chơi -> kết thúc game
-            endGame();
-            return;
-        }
-        
-        // Hiển thị dạng MM:SS
-        int minutes = (int) remainSeconds / 60;
-        int seconds = (int) remainSeconds % 60;
-        gameTimeLabel.setText(String.format("⏱️ Time: %d:%02d", minutes, seconds));
-        
-        // Đổi màu khi còn ít thời gian
-        if (remainSeconds < 10) {
-            gameTimeLabel.setStyle("-fx-font-weight: bold; -fx-background-color: rgba(192, 57, 43, 0.9); -fx-padding: 5 15; -fx-background-radius: 10; -fx-text-fill: white;");
-        } else if (remainSeconds < 30) {
-            gameTimeLabel.setStyle("-fx-font-weight: bold; -fx-background-color: rgba(230, 126, 34, 0.8); -fx-padding: 5 15; -fx-background-radius: 10; -fx-text-fill: white;");
-        }
-    }
-    
-    /** Kết thúc game */
+
     private void endGame() {
         gameEnded = true;
         stopAllTimers();
         soundManager.stopMusic();
-        
-        // Hiển thị màn hình game over
-        Platform.runLater(() -> {
-            showGameOverScreen();
-        });
-    }
-    
-    /** Hiển thị màn hình game over */
-    private void showGameOverScreen() {
-        VBox gameOverRoot = new VBox(30);
-        gameOverRoot.setAlignment(Pos.CENTER);
-        gameOverRoot.setPadding(new Insets(50));
-        
-        // Thêm ảnh nền
-        Image bgImage = AssetManager.getImage("bg_game");
-        if (bgImage != null) {
-            BackgroundImage background = new BackgroundImage(
-                bgImage,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundPosition.CENTER,
-                new BackgroundSize(100, 100, true, true, false, true)
-            );
-            gameOverRoot.setBackground(new Background(background));
-        } else {
-            gameOverRoot.setStyle("-fx-background-color: linear-gradient(to bottom, #2c3e50, #34495e);");
-        }
-        
-        // Game Over Title
-        Label gameOverTitle = new Label("⏱️ TIME'S UP!");
-        gameOverTitle.setFont(Font.font("Arial", 60));
-        gameOverTitle.setTextFill(Color.web("#e74c3c"));
-        gameOverTitle.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 15, 0, 0, 3);");
-        
-        // Score Panel
-        VBox scorePanel = new VBox(15);
-        scorePanel.setAlignment(Pos.CENTER);
-        scorePanel.setPadding(new Insets(30));
-        scorePanel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.9); -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 20, 0, 0, 5);");
-        
-        Label finalScoreLabel = new Label("FINAL SCORE");
-        finalScoreLabel.setFont(Font.font("Arial", 24));
-        finalScoreLabel.setTextFill(Color.web("#7f8c8d"));
-        
-        Label scoreValue = new Label(String.valueOf(myScore));
-        scoreValue.setFont(Font.font("Arial", 72));
-        scoreValue.setTextFill(Color.web("#2c3e50"));
-        scoreValue.setStyle("-fx-font-weight: bold;");
-        
-        Label pointsLabel = new Label("points");
-        pointsLabel.setFont(Font.font("Arial", 20));
-        pointsLabel.setTextFill(Color.web("#95a5a6"));
-        
-        // Hiển thị đánh giá
+
+        // Reset all cells when game ends
+        resetAllCellColors();
+
+        VBox endScreen = new VBox(20);
+        endScreen.setAlignment(Pos.CENTER);
+        endScreen.setPadding(new Insets(40));
+        endScreen.setStyle("-fx-background-color: rgba(44, 62, 80, 0.95);");
+
+        Label gameOverLabel = new Label("TIME'S UP!");
+        gameOverLabel.setFont(Font.font("Courier New", 42));
+        gameOverLabel.setTextFill(Color.web("#e74c3c"));
+        gameOverLabel.setStyle("-fx-font-weight: bold;");
+
+        Label finalScoreLabel = new Label("Final Score: " + myScore);
+        finalScoreLabel.setFont(Font.font(32));
+        finalScoreLabel.setTextFill(Color.WHITE);
+        finalScoreLabel.setStyle("-fx-font-weight: bold;");
+
         Label performanceLabel = new Label(getPerformanceMessage(myScore));
-        performanceLabel.setFont(Font.font("Arial", 18));
-        performanceLabel.setTextFill(Color.web("#3498db"));
-        performanceLabel.setStyle("-fx-font-style: italic;");
-        
-        scorePanel.getChildren().addAll(finalScoreLabel, scoreValue, pointsLabel, performanceLabel);
-        
-        // Buttons
-        HBox buttonBox = new HBox(20);
-        buttonBox.setAlignment(Pos.CENTER);
-        
-        Button playAgainBtn = new Button("🔄 Play Again");
-        playAgainBtn.setFont(Font.font("Arial", 18));
-        playAgainBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
-        playAgainBtn.setOnMouseEntered(e -> playAgainBtn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
-        playAgainBtn.setOnMouseExited(e -> playAgainBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
+        performanceLabel.setFont(Font.font(20));
+        performanceLabel.setTextFill(Color.web("#f39c12"));
+        performanceLabel.setWrapText(true);
+        performanceLabel.setMaxWidth(500);
+        performanceLabel.setAlignment(Pos.CENTER);
+
+        Button playAgainBtn = new Button("Play Again");
+        playAgainBtn.setStyle(
+                "-fx-font-size: 18px; " +
+                        "-fx-background-color: #27ae60; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-padding: 15 30; " +
+                        "-fx-background-radius: 10; " +
+                        "-fx-cursor: hand;"
+        );
         playAgainBtn.setOnAction(e -> {
-            show(isSinglePlayer); // Restart game
+            show(isSinglePlayer);
         });
-        
-        Button mainMenuBtn = new Button("🏠 Main Menu");
-        mainMenuBtn.setFont(Font.font("Arial", 18));
-        mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
-        mainMenuBtn.setOnMouseEntered(e -> mainMenuBtn.setStyle("-fx-background-color: #5dade2; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
-        mainMenuBtn.setOnMouseExited(e -> mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
-        mainMenuBtn.setOnAction(e -> {
+
+        Button menuBtn = new Button("Back to Menu");
+        menuBtn.setStyle(
+                "-fx-font-size: 18px; " +
+                        "-fx-background-color: #3498db; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-padding: 15 30; " +
+                        "-fx-background-radius: 10; " +
+                        "-fx-cursor: hand;"
+        );
+        menuBtn.setOnAction(e -> {
             soundManager.stopMusic();
             Platform.runLater(() -> {
                 if (onBackToMenu != null) {
@@ -563,46 +701,46 @@ public class ImprovedGameController {
                 }
             });
         });
-        
-        buttonBox.getChildren().addAll(playAgainBtn, mainMenuBtn);
-        
-        gameOverRoot.getChildren().addAll(gameOverTitle, scorePanel, buttonBox);
-        
-        Scene gameOverScene = new Scene(gameOverRoot, 820, 640);
-        primaryStage.setScene(gameOverScene);
+
+        HBox buttonBox = new HBox(20, playAgainBtn, menuBtn);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        endScreen.getChildren().addAll(
+                gameOverLabel,
+                finalScoreLabel,
+                performanceLabel,
+                buttonBox
+        );
+        Scene endScene = new Scene(endScreen, 900, 800);
+        primaryStage.setScene(endScene);
         primaryStage.show();
-        
-        // Play game over sound if available
         try {
             soundManager.playGameOver();
         } catch (Exception e) {
             // Sound not available, ignore
         }
     }
-    
-    /** Get performance message based on score */
+
     private String getPerformanceMessage(int score) {
         if (score >= 20) {
-            return "🌟 EXCELLENT! You're a supermarket master!";
+            return "EXCELLENT! You're a supermarket master!";
         } else if (score >= 15) {
-            return "🎉 GREAT JOB! Keep it up!";
+            return "GREAT JOB! Keep it up!";
         } else if (score >= 10) {
-            return "👍 GOOD! You're getting better!";
+            return "GOOD! You're getting better!";
         } else if (score >= 5) {
-            return "💪 NOT BAD! Practice makes perfect!";
+            return "NOT BAD! Practice makes perfect!";
         } else {
-            return "🎯 KEEP TRYING! You can do better!";
+            return "KEEP TRYING! You can do better!";
         }
     }
-    
-    /** Dừng tất cả timers */
+
     private void stopAllTimers() {
         if (roundTimer != null) roundTimer.stop();
         if (hudTicker != null) hudTicker.stop();
         if (gameTimer != null) gameTimer.stop();
     }
-    
-    /** Set customer emotion (happy/neutral/angry) */
+
     private void setCustomerEmotion(String emotion) {
         Image img = AssetManager.getImage("customer_" + emotion);
         if (img != null) {
@@ -611,7 +749,6 @@ public class ImprovedGameController {
     }
 
     // ====== UI helpers ======
-
     private Label mkTag(String text) {
         Label l = new Label(text);
         l.setFont(Font.font(16));
@@ -628,14 +765,11 @@ public class ImprovedGameController {
         n.setFont(Font.font(18));
         n.setTextFill(Color.web("#34495e"));
 
-        // Try to load image, use placeholder if not found
         Image img = AssetManager.getItemImage(name.toLowerCase());
         ImageView iv;
-        
         if (img != null) {
             iv = new ImageView(img);
         } else {
-            // Create a colored rectangle as placeholder
             Label placeholder = new Label("📦");
             placeholder.setFont(Font.font(48));
             placeholder.setTextFill(Color.web("#3498db"));
@@ -643,11 +777,11 @@ public class ImprovedGameController {
             box.setAlignment(Pos.CENTER);
             box.setPadding(new Insets(10));
             box.setPrefSize(120, 120);
-            box.setBackground(new Background(new BackgroundFill(Color.web("#ecf0f1"), new CornerRadii(12), Insets.EMPTY)));
+            box.setBackground(new Background(new BackgroundFill(DEFAULT_BG_COLOR, new CornerRadii(12), Insets.EMPTY)));
             box.setEffect(new DropShadow(6, Color.gray(0, 0.15)));
             return box;
         }
-        
+
         iv.setFitWidth(64);
         iv.setFitHeight(64);
 
@@ -655,9 +789,8 @@ public class ImprovedGameController {
         box.setAlignment(Pos.CENTER);
         box.setPadding(new Insets(10));
         box.setPrefSize(120, 120);
-        box.setBackground(new Background(new BackgroundFill(Color.web("#ecf0f1"), new CornerRadii(12), Insets.EMPTY)));
+        box.setBackground(new Background(new BackgroundFill(DEFAULT_BG_COLOR, new CornerRadii(12), Insets.EMPTY)));
         box.setEffect(new DropShadow(6, Color.gray(0, 0.15)));
-        // KHÔNG đăng ký onMouseClicked -> bỏ click chuột
         return box;
     }
 
@@ -667,7 +800,7 @@ public class ImprovedGameController {
     }
 
     private void flashRequestProgress() {
-        requestLabel.setTextFill(Color.web("#27ae60")); // Green for correct
+        requestLabel.setTextFill(Color.web("#27ae60"));
         requestLabel.setStyle(
             "-fx-font-weight: bold; " +
             "-fx-background-color: #d5f4e6; " +
@@ -680,7 +813,7 @@ public class ImprovedGameController {
     }
 
     private void shakeRequest() {
-        requestLabel.setTextFill(Color.web("#e74c3c")); // Red for wrong
+        requestLabel.setTextFill(Color.web("#e74c3c"));
         requestLabel.setStyle(
             "-fx-font-weight: bold; " +
             "-fx-background-color: #fadbd8; " +
@@ -690,89 +823,5 @@ public class ImprovedGameController {
             "-fx-border-insets: 0; " +
             "-fx-effect: dropshadow(three-pass-box, rgba(231,76,60,0.6), 8, 0, 3, 3);"
         );
-    }
-
-    // ====== Giữ nguyên chữ ký phương thức cũ (nếu có) ======
-
-    /** Ví dụ: vẫn trả emoji nếu project cũ gọi tới (không ảnh hưởng gameplay) */
-    private String getEmojiForItem(String itemName) {
-        // Fallback if AssetManager doesn't have emoji method
-        return "📦";
-    }
-    
-    // ====== Methods called from Main.java ======
-    
-    /** Called when receiving NEW_REQUEST from server (multiplayer) */
-    public void handleNewRequest(Message message) {
-        // In multiplayer mode, server sends the new request
-        if (!isSinglePlayer) {
-            String data = message.getData().toString();
-            String[] items = data.split(",");
-            currentSequence = new ArrayList<>(Arrays.asList(items));
-            currentIndex = 0;
-            requestLabel.setText(renderSequence(currentSequence, currentIndex));
-        }
-    }
-//
-//    /** Called when receiving ITEM_RESULT from server */
-//    public void handleItemCorrect(Message message) {
-//        // Server confirms item was correct
-//        System.out.println("✓ Server confirmed correct item");
-//    }
-//
-//    /** Called when receiving ITEM_WRONG from server */
-//    public void handleItemWrong(Message message) {
-//        // Server says wrong item
-//        System.out.println("✗ Server says wrong item");
-//        shakeRequest();
-//    }
-    
-    /** Called when receiving GAME_STATE from server */
-    public void handleGameState(Message message) {
-        // Parse game state: remainingItems|timeout|player1:score1|player2:score2
-        String data = message.getData().toString();
-        String[] parts = data.split("\\|");
-        
-        if (parts.length >= 3) {
-            // Update timeout
-            try {
-                allowedTimeSeconds = Double.parseDouble(parts[1]);
-                timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
-            } catch (NumberFormatException e) {
-                // Ignore
-            }
-            
-            // Update scores
-            for (int i = 2; i < parts.length; i++) {
-                String[] playerScore = parts[i].split(":");
-                if (playerScore.length == 2) {
-                    String playerName = playerScore[0];
-                    int score = Integer.parseInt(playerScore[1]);
-                    
-                    // Update opponent score (assuming first player is opponent)
-                    if (i == 2) {
-                        opponentScore = score;
-                    }
-                }
-            }
-            updateScoreLabels();
-        }
-    }
-    
-    /** Called when game is over */
-    public void handleGameOver(Message message) {
-        if (roundTimer != null) roundTimer.stop();
-        if (hudTicker != null) hudTicker.stop();
-        
-        String result = message.getData().toString();
-        utils.UIHelper.showInfo("Game Over", result);
-        
-        // Stop music and show option to go back to menu
-        soundManager.stopMusic();
-        Platform.runLater(() -> {
-            if (onBackToMenu != null) {
-                onBackToMenu.run();
-            }
-        });
     }
 }
