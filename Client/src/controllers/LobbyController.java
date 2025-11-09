@@ -94,7 +94,11 @@ public class LobbyController {
             showRoomBrowser();
         }
 
-        Scene scene = new Scene(mainRoot, 1000, 700);
+        // Lấy kích thước hiện tại của stage để giữ nguyên kích thước/fullscreen
+        double width = stage.getWidth() > 0 ? stage.getWidth() : 1024;
+        double height = stage.getHeight() > 0 ? stage.getHeight() : 768;
+
+        Scene scene = new Scene(mainRoot, width, height);
         stage.setScene(scene);
     }
 

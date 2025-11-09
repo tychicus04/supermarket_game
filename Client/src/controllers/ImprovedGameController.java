@@ -229,7 +229,7 @@ public class ImprovedGameController {
 
         root.getChildren().addAll(title, scoreBox, topGameArea, grid, progressBox, backButton);
 
-        Scene scene = new Scene(root, 820, 640);
+        Scene scene = new Scene(root, 1000, 900);
         primaryStage.setScene(scene);
         primaryStage.show();
 

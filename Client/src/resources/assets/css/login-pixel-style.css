@@ -1,0 +1,158 @@
+/* Pixel Art Login Screen CSS */
+
+/* Root background with image */
+.login-root {
+    -fx-background-image: url('../images/backgrounds/backgroundLogin.png');
+    -fx-background-size: cover;
+    -fx-background-position: center center;
+    -fx-background-repeat: no-repeat;
+}
+
+/* Login box container - pixel frame style */
+.login-box {
+    -fx-background-color: #F4E1B2;
+    -fx-border-color: #623B1C;
+    -fx-border-width: 4px;
+    -fx-border-style: solid;
+    -fx-padding: 30px;
+    -fx-background-radius: 15px;
+    -fx-border-radius: 15px;
+}
+
+/* Inner border effect */
+.login-box-inner {
+    -fx-border-color: #8B5A2B;
+    -fx-border-width: 3px;
+    -fx-border-style: solid;
+    -fx-border-insets: -8px;
+    -fx-padding: 0;
+}
+
+/* Title label - pixel font style */
+.login-title {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 18px;
+    -fx-text-fill: #4B2C09;
+    -fx-font-weight: bold;
+}
+
+/* Input fields - pixel style */
+.login-input {
+    -fx-background-color: #FFF4DC;
+    -fx-border-color: #A87B4D;
+    -fx-border-width: 2px;
+    -fx-border-style: solid;
+    -fx-text-fill: #3E2A1C;
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-size: 14px;
+    -fx-padding: 10px;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+}
+
+.login-input:focused {
+    -fx-border-color: #8B5A2B;
+    -fx-border-width: 3px;
+    -fx-background-color: #FFFEF8;
+}
+
+.login-input .text {
+    -fx-fill: #3E2A1C;
+}
+
+/* Prompt text color - đen đậm */
+.login-input .text-input {
+    -fx-prompt-text-fill: #000000;
+}
+
+.login-input:focused .text-input {
+    -fx-prompt-text-fill: #000000;
+}
+
+/* Login button - pixel style */
+.pixel-btn-login {
+    -fx-background-color: #FFD45E;
+    -fx-border-color: #6B3F14;
+    -fx-border-width: 3px;
+    -fx-border-style: solid;
+    -fx-text-fill: #4B2C09;
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 12px 20px;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-cursor: hand;
+}
+
+.pixel-btn-login:hover {
+    -fx-background-color: #FFB347;
+}
+
+.pixel-btn-login:pressed {
+    -fx-background-color: #FFA826;
+    -fx-translate-y: 2px;
+}
+
+/* Register button - pixel style */
+.pixel-btn-register {
+    -fx-background-color: #FF8A4C;
+    -fx-border-color: #6B3F14;
+    -fx-border-width: 3px;
+    -fx-border-style: solid;
+    -fx-text-fill: #4B2C09;
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 12px 20px;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-cursor: hand;
+}
+
+.pixel-btn-register:hover {
+    -fx-background-color: #FF6B35;
+}
+
+.pixel-btn-register:pressed {
+    -fx-background-color: #FF5520;
+    -fx-translate-y: 2px;
+}
+
+/* Status label */
+.status-label {
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #c0392b;
+    -fx-padding: 5px;
+}
+
+.status-label.success {
+    -fx-text-fill: #27ae60;
+}
+
+/* Slogan text */
+.slogan-text {
+    -fx-font-family: "Georgia", serif;
+    -fx-font-size: 13px;
+    -fx-font-style: italic;
+    -fx-text-fill: #5B3D1C;
+    -fx-opacity: 0.85;
+}
+
+/* Pixel flicker animation for hover */
+@keyframes pixel-flicker {
+    0%, 100% {
+        -fx-opacity: 1.0;
+    }
+    25% {
+        -fx-opacity: 0.85;
+    }
+    50% {
+        -fx-opacity: 1.0;
+    }
+    75% {
+        -fx-opacity: 0.9;
+    }
+}

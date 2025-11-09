@@ -1,0 +1,100 @@
+/* Pixel Art Menu Screen CSS */
+
+/* Root background with menu image */
+.menu-root {
+    -fx-background-image: url('../images/backgrounds/backgroundMenu.png');
+    -fx-background-size: cover;
+    -fx-background-position: center center;
+    -fx-background-repeat: no-repeat;
+}
+
+/* Menu container - positioned center-right */
+.menu-container {
+    -fx-alignment: center;
+    -fx-spacing: 20px;
+    -fx-padding: 30px;
+}
+
+/* Welcome text - pixel style */
+.menu-welcome {
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 48px; /* Increased size for better visibility */
+    -fx-fill: #FFD700; /* Yellow/gold color like the image */
+    -fx-stroke: #D32F2F; /* Red-orange outline */
+    -fx-stroke-width: 3px;
+}
+
+/* Base pixel button style */
+.pixel-menu-btn {
+    -fx-min-width: 380px;
+    -fx-max-width: 420px;
+    -fx-pref-width: 400px;
+    -fx-pref-height: 65px;
+    -fx-font-family: "Press Start 2P", "Courier New", monospace;
+    -fx-font-size: 20px; /* Slightly increased font size */
+    -fx-font-weight: bold;
+    -fx-text-fill: black; /* Changed text color to black */
+    -fx-border-width: 3px;
+    -fx-border-style: solid;
+    -fx-border-color: #3E2A1C;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-cursor: hand;
+    /* Removed drop shadow for crisp look; keep buttons flat/professional */
+}
+
+/* If outline for text is needed (for clarity), it can be enabled - for testing */
+.pixel-menu-btn .text {
+    -fx-stroke: #FFFFFF;
+    -fx-stroke-width: 1px;
+}
+
+/* Multiplayer button - purple */
+.btn-multi {
+    -fx-background-color: #A36FD1;
+}
+
+.btn-multi:hover {
+    -fx-background-color: #C789F2;
+    /* Hover stays color-only for clarity */
+}
+
+.btn-multi:pressed {
+    -fx-background-color: #8B5AC1;
+    -fx-padding: 2 0 0 0;
+    /* No pressed shadow */
+}
+
+/* Leaderboard button - golden yellow */
+.btn-leaderboard {
+    -fx-background-color: #FFB347;
+}
+
+.btn-leaderboard:hover {
+    -fx-background-color: #FFD580;
+    /* Hover color-only */
+}
+
+.btn-leaderboard:pressed {
+    -fx-background-color: #FFA533;
+    -fx-padding: 2 0 0 0;
+    /* No pressed shadow */
+}
+
+/* Logout button - orange */
+.btn-logout {
+    -fx-background-color: #E78640;
+}
+
+.btn-logout:hover {
+    -fx-background-color: #F9963D;
+    /* Hover color-only */
+}
+
+.btn-logout:pressed {
+    -fx-background-color: #D67530;
+    -fx-padding: 2 0 0 0;
+    /* No pressed shadow */
+}
+
+/* Note: Fade-in animations are handled by Java code, not CSS */

@@ -139,7 +139,117 @@ env/
 *.rej
 .cache/
 
-# Keep important library files
-!SupermarketServer/libs/*.jar
-!libs/*.jar
+# --- Additional cleans for uploading to GitHub ---
+# Ignore all IDE/project metadata and workspace-specific files (safe to ignore)
+*.iml
+*.iws
+*.ipr
+/.idea/
+/.vscode/
+.idea_modules/
+# NetBeans private settings
+nbproject/private/
+nbproject/private.properties
+nbproject/private.xml
+# JetBrains workspace and usage files
+workspace.xml
+tasks.xml
+usage.statistics.xml
+vcs.xml
+deployment.xml
+shelf/
 
+# Eclipse
+.metadata
+.classpath
+.project
+.settings/
+
+# Ignore generated xml workspace files but keep build scripts (build.xml) and project config
+# (do NOT ignore build.xml, project.xml which are part of repo build config)
+# ignore common IDE xml temp files
+*workspace*.xml
+*private*.xml
+*.user
+
+# Keep build files in repo but ignore generated build outputs
+build/
+dist/
+out/
+bin/
+nbbuild/
+nbdist/
+Client/build/
+SupermarketServer/build/
+Shared/build/
+Client/dist/
+SupermarketServer/dist/
+
+# Compiled classes and packaged artifacts
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# Keep necessary library jars tracked if present in libs/ by explicit allow rules
+!libs/*.jar
+!SupermarketServer/libs/*.jar
+
+# Logs, temp and backup files
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak
+*.backup
+*.orig
+*.rej
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.env/
+.env.local
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Database local files - ignore local DBs; keep server DB schema/version if tracked intentionally
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+supermarket_game.db
+temp_check.db
+
+# Secrets / credentials
+.env
+.env.*.local
+secret.*
+credentials.*
+*.keystore
+*.jks
+
+# Misc
+.cache/
+*.class
+
+# End of file
