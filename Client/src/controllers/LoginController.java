@@ -10,10 +10,10 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
+import utils.SoundManager;
 import utils.UIHelper;
 import javafx.animation.FadeTransition;
 import javafx.util.Duration;
@@ -25,17 +25,19 @@ public class LoginController {
     private Stage stage;
     private Runnable onLoginSuccess;
     private NetworkManager network;
-    
+
     private TextField usernameField;
     private PasswordField passwordField;
     private Label statusLabel;
-    
+    private SoundManager soundManager;
+
     public LoginController(Stage stage, Runnable onLoginSuccess) {
         this.stage = stage;
         this.onLoginSuccess = onLoginSuccess;
         this.network = NetworkManager.getInstance();
+        this.soundManager = SoundManager.getInstance();
     }
-    
+
     public void show() {
         // Root container with background image
         StackPane root = new StackPane();
@@ -81,7 +83,7 @@ public class LoginController {
         // Buttons with pixel style
         HBox buttonBox = new HBox(15);
         buttonBox.setAlignment(Pos.CENTER);
-        
+
         Button loginBtn = new Button("LOGIN");
         loginBtn.setPrefWidth(180);
         loginBtn.setPrefHeight(45);
@@ -93,7 +95,7 @@ public class LoginController {
         registerBtn.getStyleClass().add("pixel-btn-register");
 
         buttonBox.getChildren().addAll(loginBtn, registerBtn);
-        
+
         // Slogan text at bottom
         Label sloganLabel = new Label("Quản lý siêu thị mơ ước của bạn!");
         sloganLabel.getStyleClass().add("slogan-text");
@@ -107,12 +109,21 @@ public class LoginController {
         fadeIn.play();
 
         // Events
-        loginBtn.setOnAction(e -> handleLogin());
-        registerBtn.setOnAction(e -> handleRegister());
-        
+        loginBtn.setOnAction(e -> {
+            soundManager.play("menu-button");
+            handleLogin();
+        });
+        registerBtn.setOnAction(e -> {
+            soundManager.play("menu-button");
+            handleRegister();
+        });
+
         // Enter key to login
-        passwordField.setOnAction(e -> handleLogin());
-        
+        passwordField.setOnAction(e -> {
+            soundManager.play("menu-button");
+            handleLogin();
+        });
+
         // Add all components to login box
         loginBox.getChildren().addAll(
             title,
@@ -122,6 +133,7 @@ public class LoginController {
             statusLabel,
             sloganLabel
         );
+
 
         root.getChildren().add(loginBox);
 
@@ -152,7 +164,7 @@ public class LoginController {
 
         stage.setScene(scene);
     }
-    
+
     /**
      * Fallback inline styles if CSS file cannot be loaded
      */
@@ -203,29 +215,29 @@ public class LoginController {
     private void handleLogin() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
-        
+
         if (username.isEmpty() || password.isEmpty()) {
             statusLabel.setText("Please fill all fields");
             return;
         }
-        
+
         if (network.isConnected()) {
             if (!network.connect()) {
                 statusLabel.setText("Cannot connect to server!");
                 return;
             }
         }
-        
-        statusLabel.setText("⏳ Logging in...");
+
+        statusLabel.setText("Logging in...");
         network.login(username, password);
     }
-    
+
     private void handleRegister() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
-        
+
         if (username.isEmpty() || password.isEmpty()) {
-            statusLabel.setText("❌ Please fill all fields");
+            statusLabel.setText("Please fill all fields");
             return;
         }
         

@@ -81,6 +81,22 @@
     /* No pressed shadow */
 }
 
+/* Settings button - blue */
+.btn-settings {
+    -fx-background-color: #5DADE2;
+}
+
+.btn-settings:hover {
+    -fx-background-color: #85C1E9;
+    /* Hover color-only */
+}
+
+.btn-settings:pressed {
+    -fx-background-color: #3498DB;
+    -fx-padding: 2 0 0 0;
+    /* No pressed shadow */
+}
+
 /* Logout button - orange */
 .btn-logout {
     -fx-background-color: #E78640;

@@ -61,6 +61,7 @@ public class SoundManager {
 
         // UI sounds
         loadSound("button_hover", "/resources/assets/sounds/effects/button_hover.wav");
+        loadSound("menu_button", "/resources/assets/sounds/effects/menu_button.wav");
     }
 
     /**
@@ -214,6 +215,27 @@ public class SoundManager {
     }
 
     /**
+     * Set sound enabled state
+     */
+    public void setSoundEnabled(boolean enabled) {
+        soundEnabled = enabled;
+        System.out.println("🔊 Sound: " + (soundEnabled ? "ON" : "OFF"));
+    }
+
+    /**
+     * Set music enabled state
+     */
+    public void setMusicEnabled(boolean enabled) {
+        musicEnabled = enabled;
+        if (musicEnabled) {
+            resumeMusic();
+        } else {
+            pauseMusic();
+        }
+        System.out.println("🎵 Music: " + (musicEnabled ? "ON" : "OFF"));
+    }
+
+    /**
      * Set sound volume (0.0 to 1.0)
      */
     public void setSoundVolume(double volume) {
@@ -228,6 +250,20 @@ public class SoundManager {
         if (backgroundMusic != null) {
             backgroundMusic.setVolume(musicVolume);
         }
+    }
+
+    /**
+     * Get sound volume
+     */
+    public double getSoundVolume() {
+        return soundVolume;
+    }
+
+    /**
+     * Get music volume
+     */
+    public double getMusicVolume() {
+        return musicVolume;
     }
 
     /**

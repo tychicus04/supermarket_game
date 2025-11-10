@@ -85,12 +85,16 @@ public class MenuController {
         // Tạo BUTTON Single Player theo cùng class với các nút khác để đồng nhất style
         Button singleBtn = new Button("SINGLE PLAYER");
         singleBtn.getStyleClass().addAll("pixel-menu-btn", "btn-single");
-        singleBtn.setOnAction(e -> handleSinglePlayerClick());
+        singleBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            handleSinglePlayerClick();
+        });
 
         // Multiplayer button - purple
-        Button multiBtn = new Button("👥 MULTIPLAYER");
+        Button multiBtn = new Button("MULTIPLAYER");
         multiBtn.getStyleClass().addAll("pixel-menu-btn", "btn-multi");
         multiBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
             if (onShowLobby != null) {
                 onShowLobby.run();
             } else {
@@ -99,23 +103,33 @@ public class MenuController {
         });
 
         // Leaderboard button - golden yellow
-        Button leaderboardBtn = new Button("🏆 LEADERBOARD");
+        Button leaderboardBtn = new Button("LEADERBOARD");
         leaderboardBtn.getStyleClass().addAll("pixel-menu-btn", "btn-leaderboard");
         leaderboardBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
             network.getLeaderboard();
             onShowLeaderboard.run();
         });
 
+        // Settings button - blue
+        Button settingsBtn = new Button("SETTINGS");
+        settingsBtn.getStyleClass().addAll("pixel-menu-btn", "btn-settings");
+        settingsBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            showSettings();
+        });
+
         // Logout button - orange
-        Button logoutBtn = new Button("🚪 LOGOUT");
+        Button logoutBtn = new Button("LOGOUT");
         logoutBtn.getStyleClass().addAll("pixel-menu-btn", "btn-logout");
         logoutBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
             if (onLogout != null) {
                 onLogout.run();
             }
         });
 
-        menuContainer.getChildren().addAll(welcome, singleBtn, multiBtn, leaderboardBtn, logoutBtn);
+        menuContainer.getChildren().addAll(welcome, singleBtn, multiBtn, leaderboardBtn, settingsBtn, logoutBtn);
         root.getChildren().add(menuContainer);
 
         // Lấy kích thước hiện tại của stage để giữ nguyên kích thước/fullscreen
@@ -131,11 +145,11 @@ public class MenuController {
                 scene.getStylesheets().add(cssResource.toExternalForm());
             } else {
                 System.err.println("Menu CSS not found, using fallback");
-                applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, logoutBtn);
+                applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, settingsBtn, logoutBtn);
             }
         } catch (Exception e) {
             System.err.println("Failed to load menu CSS: " + e.getMessage());
-            applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, logoutBtn);
+            applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, settingsBtn, logoutBtn);
         }
 
         stage.setScene(scene);
@@ -144,7 +158,8 @@ public class MenuController {
         animateButtonFadeIn(singleBtn, 0.0);
         animateButtonFadeIn(multiBtn, 0.1);
         animateButtonFadeIn(leaderboardBtn, 0.2);
-        animateButtonFadeIn(logoutBtn, 0.3);
+        animateButtonFadeIn(settingsBtn, 0.3);
+        animateButtonFadeIn(logoutBtn, 0.4);
     }
 
     /**
@@ -181,7 +196,8 @@ public class MenuController {
     private void applyFallbackMenuStyles(StackPane root,
                                          Button singleBtn,
                                          Button multiBtn,
-                                         Button leaderboardBtn, Button logoutBtn) {
+                                         Button leaderboardBtn,
+                                         Button settingsBtn, Button logoutBtn) {
         // Background
         root.setStyle("-fx-background-image: url('/resources/assets/images/backgrounds/backgroundMenu.png'); " +
                      "-fx-background-size: cover; -fx-background-position: center center; " +
@@ -212,6 +228,9 @@ public class MenuController {
         // Leaderboard - golden
         leaderboardBtn.setStyle(baseStyle + "-fx-background-color: #FFB347;");
 
+        // Settings - blue
+        settingsBtn.setStyle(baseStyle + "-fx-background-color: #4DA6FF;");
+
         // Logout - orange
         logoutBtn.setStyle(baseStyle + "-fx-background-color: #E78640;");
     }
@@ -226,7 +245,10 @@ public class MenuController {
         Text title = UIHelper.createTitle("Multiplayer Mode");
 
         Button createBtn = UIHelper.createButton("CREATE ROOM", UIHelper.PRIMARY_COLOR);
-        createBtn.setOnAction(e -> handleCreateRoomClick());
+        createBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            handleCreateRoomClick();
+        });
 
         HBox joinBox = new HBox(10);
         joinBox.setAlignment(Pos.CENTER);
@@ -234,12 +256,18 @@ public class MenuController {
         TextField roomField = UIHelper.createTextField("Room ID", 200);
         Button joinBtn = UIHelper.createSmallButton("JOIN", UIHelper.SECONDARY_COLOR);
 
-        joinBtn.setOnAction(e -> handleJoinRoomClick(roomField.getText()));
+        joinBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            handleJoinRoomClick(roomField.getText());
+        });
 
         joinBox.getChildren().addAll(roomField, joinBtn);
 
         Button backBtn = UIHelper.createButton("BACK", "#95a5a6");
-        backBtn.setOnAction(e -> handleBackToMainMenuClick());
+        backBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            handleBackToMainMenuClick();
+        });
 
         root.getChildren().addAll(title, createBtn, joinBox, backBtn);
 
@@ -272,10 +300,16 @@ public class MenuController {
         
         startGameButton = UIHelper.createButton("START GAME", UIHelper.PRIMARY_COLOR);
         startGameButton.setDisable(playerCount < 2);
-        startGameButton.setOnAction(e -> handleStartGameClick());
+        startGameButton.setOnAction(e -> {
+            soundManager.play("menu_button");
+            handleStartGameClick();
+        });
 
         Button leaveBtn = UIHelper.createButton("LEAVE ROOM", UIHelper.DANGER_COLOR);
-        leaveBtn.setOnAction(e -> handleLeaveRoomClick());
+        leaveBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            handleLeaveRoomClick();
+        });
 
         root.getChildren().addAll(title, roomPlayerCount, waitText, startGameButton, leaveBtn);
 
@@ -323,34 +357,6 @@ public class MenuController {
     }
 
     /**
-     * Handle multiplayer button click
-     */
-    private void handleMultiplayerClick() {
-        if (onShowLobby != null) {
-            onShowLobby.run();
-        } else {
-            showMultiplayerOptions();
-        }
-    }
-
-    /**
-     * Handle leaderboard button click
-     */
-    private void handleLeaderboardClick() {
-        network.getLeaderboard();
-        onShowLeaderboard.run();
-    }
-
-    /**
-     * Handle logout button click
-     */
-    private void handleLogoutClick() {
-        if (onLogout != null) {
-            onLogout.run();
-        }
-    }
-
-    /**
      * Handle back button click from multiplayer options
      */
     private void handleBackToMainMenuClick() {
@@ -392,6 +398,14 @@ public class MenuController {
             network.leaveRoom(currentRoomId);
         }
         showMainMenu();
+    }
+
+    /**
+     * Show settings screen
+     */
+    private void showSettings() {
+        SettingsController settingsController = new SettingsController(stage, this::showMainMenu);
+        settingsController.show();
     }
 }
 

@@ -15,15 +15,18 @@ import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
 import javafx.util.Duration;
 import models.Message;
+import utils.SoundManager;
 
 public class LeaderboardController {
     private Stage stage;
     private Runnable onBack;
     private VBox leaderboardBox;
+    private SoundManager soundManager;
     
     public LeaderboardController(Stage stage, Runnable onBack) {
         this.stage = stage;
         this.onBack = onBack;
+        this.soundManager = SoundManager.getInstance();
     }
     
     public void show() {
@@ -38,7 +41,7 @@ public class LeaderboardController {
         container.getStyleClass().add("leaderboard-container");
 
         // Title - pixel style
-        Text title = new Text("🏆 LEADERBOARD");
+        Text title = new Text("LEADERBOARD");
         title.getStyleClass().add("leaderboard-title");
 
         // Leaderboard box
@@ -57,9 +60,12 @@ public class LeaderboardController {
         scrollPane.setPrefWidth(700);
 
         // Back button - pixel style
-        Button backBtn = new Button("← BACK");
+        Button backBtn = new Button("BACK");
         backBtn.getStyleClass().add("leaderboard-back-btn");
-        backBtn.setOnAction(e -> onBack.run());
+        backBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            onBack.run();
+        });
 
         container.getChildren().addAll(title, scrollPane, backBtn);
         root.getChildren().add(container);
@@ -121,7 +127,6 @@ public class LeaderboardController {
         String[] lines = data.split("\n");
         int rank = 1;
         for (String line : lines) {
-            // Format: "username:score" hoặc "rank:username:score"
             String[] parts = line.split(":");
             if (parts.length >= 2) {
                 String username = parts[0];
