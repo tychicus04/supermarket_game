@@ -113,6 +113,8 @@ public class SettingsController {
         backBtn.setOnMouseExited(e -> backBtn.setStyle(backBtn.getStyle() + "-fx-background-color: #E94F37;"));
         backBtn.setOnAction(e -> {
             soundManager.play("menu_button");
+            // Save settings before going back
+            soundManager.saveSettings();
             onBack.run();
         });
         return backBtn;
@@ -130,13 +132,13 @@ public class SettingsController {
                       "-fx-text-fill: white;");
 
         // Volume value display
-        Label valueLabel = new Label(String.format("%.0f%%", soundManager.getSoundVolume() * 50));
+        Label valueLabel = new Label(String.format("%.0f%%", soundManager.getSoundVolume() * 100));
         valueLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
                            "-fx-font-size: 16px; " +
                            "-fx-text-fill: #FFD700;");
 
         // Slider
-        Slider slider = new Slider(0, 100, soundManager.getSoundVolume() * 50);
+        Slider slider = new Slider(0, 100, soundManager.getSoundVolume() * 100);
         slider.setShowTickLabels(true);
         slider.setShowTickMarks(true);
         slider.setMajorTickUnit(25);
@@ -145,7 +147,7 @@ public class SettingsController {
         slider.setStyle("-fx-control-inner-background: #2C3E50;");
 
         slider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            double volume = newVal.doubleValue() / 50.0;
+            double volume = newVal.doubleValue() / 100.0;
             soundManager.setSoundVolume(volume);
             valueLabel.setText(String.format("%.0f%%", newVal.doubleValue()));
 

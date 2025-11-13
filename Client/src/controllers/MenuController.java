@@ -353,6 +353,10 @@ public class MenuController {
      * Handle single player button click
      */
     private void handleSinglePlayerClick() {
+        stage.setFullScreen(false);
+        stage.setWidth(1024);
+        stage.setHeight(1024);
+        stage.centerOnScreen();
         onStartGame.accept(true);
     }
 
