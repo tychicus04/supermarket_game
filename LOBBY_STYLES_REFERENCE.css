@@ -1,0 +1,505 @@
+/* 🎨 Lobby & Waiting Room - CSS Style Reference */
+/* Copy-paste ready styles for customization */
+
+/* ============================================
+   GLASS-MORPHISM CONTAINERS
+   ============================================ */
+
+/* Large Glass Container (Titles) */
+.glass-container-large {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 25px;
+    -fx-border-color: rgba(255, 255, 255, 0.4);
+    -fx-border-width: 2px;
+    -fx-border-radius: 25px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 25, 0.3, 0, 8);
+}
+
+/* Medium Glass Container (Sections) */
+.glass-container-medium {
+    -fx-background-color: rgba(255, 255, 255, 0.15);
+    -fx-background-radius: 20px;
+    -fx-border-color: rgba(255, 255, 255, 0.3);
+    -fx-border-width: 2px;
+    -fx-border-radius: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 20, 0.3, 0, 5);
+}
+
+/* Small Glass Container (Cards) */
+.glass-container-small {
+    -fx-background-color: rgba(0, 0, 0, 0.35);
+    -fx-background-radius: 20px;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-width: 2px;
+    -fx-border-radius: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 20, 0.3, 0, 5);
+}
+
+/* ============================================
+   GRADIENT CARDS (Player Slots)
+   ============================================ */
+
+/* Player 1 - Blue */
+.player-card-p1 {
+    -fx-background-color: linear-gradient(to right, rgba(52, 152, 219, 0.4), rgba(41, 128, 185, 0.3));
+    -fx-background-radius: 18px;
+    -fx-border-color: rgba(255, 255, 255, 0.35);
+    -fx-border-width: 2.5px;
+    -fx-border-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 15, 0.25, 0, 5);
+}
+
+/* Player 2 - Green */
+.player-card-p2 {
+    -fx-background-color: linear-gradient(to right, rgba(46, 204, 113, 0.4), rgba(39, 174, 96, 0.3));
+    -fx-background-radius: 18px;
+    -fx-border-color: rgba(255, 255, 255, 0.35);
+    -fx-border-width: 2.5px;
+    -fx-border-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 15, 0.25, 0, 5);
+}
+
+/* Player 3 - Purple */
+.player-card-p3 {
+    -fx-background-color: linear-gradient(to right, rgba(155, 89, 182, 0.4), rgba(142, 68, 173, 0.3));
+    -fx-background-radius: 18px;
+    -fx-border-color: rgba(255, 255, 255, 0.35);
+    -fx-border-width: 2.5px;
+    -fx-border-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 15, 0.25, 0, 5);
+}
+
+/* Player 4 - Orange */
+.player-card-p4 {
+    -fx-background-color: linear-gradient(to right, rgba(230, 126, 34, 0.4), rgba(211, 84, 0, 0.3));
+    -fx-background-radius: 18px;
+    -fx-border-color: rgba(255, 255, 255, 0.35);
+    -fx-border-width: 2.5px;
+    -fx-border-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 15, 0.25, 0, 5);
+}
+
+/* ============================================
+   ROOM CARDS
+   ============================================ */
+
+/* Room Card - Normal */
+.room-card {
+    -fx-background-color: linear-gradient(to right, rgba(52, 152, 219, 0.3), rgba(41, 128, 185, 0.25));
+    -fx-background-radius: 15px;
+    -fx-border-color: rgba(52, 152, 219, 0.6);
+    -fx-border-radius: 15px;
+    -fx-border-width: 2.5px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 12, 0.3, 0, 4);
+}
+
+/* Room Card - Hover */
+.room-card:hover {
+    -fx-background-color: linear-gradient(to right, rgba(52, 152, 219, 0.45), rgba(41, 128, 185, 0.35));
+    -fx-background-radius: 15px;
+    -fx-border-color: rgba(52, 152, 219, 0.8);
+    -fx-border-radius: 15px;
+    -fx-border-width: 2.5px;
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.5), 15, 0.4, 0, 5);
+    -fx-cursor: hand;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+/* Primary Button - Blue */
+.button-primary {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-background-radius: 12px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 25px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.3, 0, 4);
+}
+
+.button-primary:hover {
+    -fx-background-color: #2980b9;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 15, 0.4, 0, 6);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Success Button - Green */
+.button-success {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-background-radius: 12px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 25px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.3, 0, 4);
+}
+
+.button-success:hover {
+    -fx-background-color: #229954;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 15, 0.4, 0, 6);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Danger Button - Red */
+.button-danger {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 12px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 25px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.3, 0, 4);
+}
+
+.button-danger:hover {
+    -fx-background-color: #c0392b;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 15, 0.4, 0, 6);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Purple Button */
+.button-purple {
+    -fx-background-color: #9b59b6;
+    -fx-text-fill: white;
+    -fx-background-radius: 12px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 25px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.3, 0, 4);
+}
+
+.button-purple:hover {
+    -fx-background-color: #8e44ad;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 15, 0.4, 0, 6);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+/* Main Title */
+.title-main {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 44px;
+    -fx-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 10, 0.6, 0, 4);
+}
+
+/* Section Title */
+.title-section {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 28px;
+    -fx-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 6, 0.5, 0, 3);
+}
+
+/* Subtitle */
+.subtitle {
+    -fx-font-family: "System";
+    -fx-font-weight: semi-bold;
+    -fx-font-size: 16px;
+    -fx-text-fill: #ecf0f1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 4, 0.3, 0, 2);
+}
+
+/* Label - Bold */
+.label-bold {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 4, 0.3, 0, 2);
+}
+
+/* Label - Regular */
+.label-regular {
+    -fx-font-family: "System";
+    -fx-font-weight: semi-bold;
+    -fx-font-size: 16px;
+    -fx-text-fill: #ecf0f1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 3, 0.3, 0, 1);
+}
+
+/* Label - Muted */
+.label-muted {
+    -fx-font-family: "System";
+    -fx-font-weight: semi-bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: #bdc3c7;
+}
+
+/* ============================================
+   TEXT FIELDS
+   ============================================ */
+
+.text-field-modern {
+    -fx-background-color: rgba(255, 255, 255, 0.9);
+    -fx-background-radius: 10px;
+    -fx-border-color: rgba(52, 152, 219, 0.5);
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 12px;
+}
+
+.text-field-modern:focused {
+    -fx-border-color: rgba(52, 152, 219, 0.9);
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.4), 8, 0.3, 0, 0);
+}
+
+/* ============================================
+   FRIEND ITEMS
+   ============================================ */
+
+/* Friend Card */
+.friend-card {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 12px;
+    -fx-border-color: rgba(255, 255, 255, 0.3);
+    -fx-border-radius: 12px;
+    -fx-border-width: 1.5px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 8, 0.2, 0, 3);
+}
+
+.friend-card:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+    -fx-border-color: rgba(255, 255, 255, 0.5);
+    -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.2), 10, 0.3, 0, 3);
+    -fx-cursor: hand;
+}
+
+/* Friend Request Card */
+.friend-request-card {
+    -fx-background-color: linear-gradient(to right, rgba(155, 89, 182, 0.4), rgba(142, 68, 173, 0.3));
+    -fx-background-radius: 10px;
+    -fx-border-color: rgba(155, 89, 182, 0.7);
+    -fx-border-radius: 10px;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(155, 89, 182, 0.4), 10, 0.3, 0, 3);
+}
+
+.friend-request-card:hover {
+    -fx-background-color: linear-gradient(to right, rgba(155, 89, 182, 0.55), rgba(142, 68, 173, 0.45));
+    -fx-border-color: rgba(155, 89, 182, 0.9);
+    -fx-effect: dropshadow(gaussian, rgba(155, 89, 182, 0.6), 15, 0.4, 0, 5);
+}
+
+/* Online Status Indicator */
+.status-online {
+    -fx-text-fill: #2ecc71;
+    -fx-font-size: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(46, 204, 113, 0.9), 6, 0.7, 0, 0);
+}
+
+/* Offline Status Indicator */
+.status-offline {
+    -fx-text-fill: #95a5a6;
+    -fx-font-size: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(149, 165, 166, 0.5), 6, 0.7, 0, 0);
+}
+
+/* ============================================
+   SPECIAL EFFECTS
+   ============================================ */
+
+/* Current Player Highlight (Gold Glow) */
+.player-current {
+    -fx-text-fill: #f1c40f;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(241, 196, 15, 0.8), 8, 0.6, 0, 0);
+}
+
+/* Room ID Label */
+.room-id-label {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 22px;
+    -fx-text-fill: #f39c12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 4, 0.4, 0, 2);
+    -fx-padding: 5px 15px;
+    -fx-background-color: rgba(0, 0, 0, 0.3);
+    -fx-background-radius: 8px;
+}
+
+/* Section Headers */
+.section-header {
+    -fx-background-color: rgba(52, 152, 219, 0.3);
+    -fx-background-radius: 15px;
+    -fx-border-color: rgba(52, 152, 219, 0.6);
+    -fx-border-width: 2px;
+    -fx-border-radius: 15px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 10, 0.2, 0, 3);
+    -fx-padding: 15px 25px;
+}
+
+/* Separator Line */
+.separator-custom {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   SCROLLPANE
+   ============================================ */
+
+.scroll-pane-transparent {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.scroll-pane-transparent .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane-transparent .scroll-bar {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+.scroll-pane-transparent .scroll-bar .thumb {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+    -fx-background-radius: 5px;
+}
+
+.scroll-pane-transparent .scroll-bar .thumb:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   CONTENT BOXES
+   ============================================ */
+
+/* Search Results Box */
+.search-results-box {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-padding: 12px;
+    -fx-background-radius: 10px;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 10px;
+}
+
+/* Friend List Box */
+.friend-list-box {
+    -fx-background-color: rgba(46, 204, 113, 0.1);
+    -fx-background-radius: 10px;
+    -fx-border-color: rgba(46, 204, 113, 0.25);
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 10px;
+    -fx-padding: 10px;
+}
+
+/* Friend Request List Box */
+.friend-request-list-box {
+    -fx-background-color: rgba(155, 89, 182, 0.15);
+    -fx-padding: 10px;
+    -fx-background-radius: 10px;
+    -fx-border-color: rgba(155, 89, 182, 0.3);
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 10px;
+}
+
+/* Room List Box */
+.room-list-box {
+    -fx-background-color: rgba(0, 0, 0, 0.2);
+    -fx-background-radius: 15px;
+    -fx-padding: 15px;
+}
+
+/* ============================================
+   COLOR PALETTE REFERENCE
+   ============================================ */
+
+/*
+PRIMARY COLORS:
+- Blue:   #3498db (normal) / #2980b9 (hover)
+- Green:  #27ae60 (normal) / #229954 (hover)
+- Red:    #e74c3c (normal) / #c0392b (hover)
+- Purple: #9b59b6 (normal) / #8e44ad (hover)
+- Orange: #e67e22 (normal) / #d35400 (hover)
+- Gold:   #f39c12 (normal) / #f1c40f (bright)
+
+NEUTRAL COLORS:
+- White:      #ffffff
+- Light Gray: #ecf0f1
+- Gray:       #bdc3c7
+- Dark Gray:  #95a5a6
+
+PLAYER COLORS:
+- P1 Blue:   rgba(52, 152, 219, X)
+- P2 Green:  rgba(46, 204, 113, X)
+- P3 Purple: rgba(155, 89, 182, X)
+- P4 Orange: rgba(230, 126, 34, X)
+
+OPACITY LEVELS:
+- Very Light: 0.1 - 0.2
+- Light:      0.25 - 0.35
+- Medium:     0.4 - 0.5
+- Strong:     0.6 - 0.8
+- Very Strong: 0.9+
+*/
+
+/* ============================================
+   SHADOW REFERENCE
+   ============================================ */
+
+/*
+SHADOW FORMAT:
+-fx-effect: dropshadow(gaussian, COLOR, SIZE, SPREAD, X-OFFSET, Y-OFFSET);
+
+TYPICAL VALUES:
+- Text shadow:       SIZE: 3-10,  SPREAD: 0.3-0.6, OFFSET: 0-4
+- Card shadow:       SIZE: 10-25, SPREAD: 0.2-0.4, OFFSET: 3-8
+- Glow effect:       SIZE: 6-15,  SPREAD: 0.5-0.9, OFFSET: 0
+- Hover emphasis:    SIZE: 15-30, SPREAD: 0.4-0.6, OFFSET: 5-10
+
+SHADOW COLORS:
+- Black shadow:  rgba(0, 0, 0, 0.3-0.8)
+- Colored glow:  rgba(R, G, B, 0.4-0.9)
+- White glow:    rgba(255, 255, 255, 0.2-0.5)
+*/
+
+/* ============================================
+   USAGE EXAMPLES
+   ============================================ */
+
+/*
+JAVA CODE EXAMPLE:
+
+// Create a glass container
+VBox container = new VBox();
+container.setStyle(
+    "-fx-background-color: rgba(255, 255, 255, 0.2);" +
+    "-fx-background-radius: 20px;" +
+    "-fx-border-color: rgba(255, 255, 255, 0.4);" +
+    "-fx-border-width: 2px;" +
+    "-fx-border-radius: 20px;" +
+    "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 20, 0.3, 0, 5);"
+);
+
+// Create a styled button
+Button button = createStyledButton("Click Me", "#3498db", "#2980b9");
+
+// Create a gradient player card
+HBox playerCard = new HBox();
+playerCard.setStyle(
+    "-fx-background-color: linear-gradient(to right, rgba(52, 152, 219, 0.4), rgba(41, 128, 185, 0.3));" +
+    "-fx-background-radius: 18px;" +
+    "-fx-border-color: rgba(255, 255, 255, 0.35);" +
+    "-fx-border-width: 2.5px;" +
+    "-fx-border-radius: 18px;" +
+    "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 15, 0.25, 0, 5);"
+);
+*/
+

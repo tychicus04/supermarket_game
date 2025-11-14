@@ -11,6 +11,9 @@ import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static constants.GameConstants.*;
 
 /**
@@ -97,9 +100,25 @@ public class Main extends Application {
                     break;
                 case MESSAGE_TYPE_ROOM_CREATED:
                 case MESSAGE_TYPE_ROOM_JOINED:
+                    // Parse room data: "roomId:playerCount"
+                    String roomData = message.getData().toString();
+                    String[] parts = roomData.split(":");
+                    if (parts.length >= 2) {
+                        String roomId = parts[0];
+                        // Get list of players (for now just current user)
+                        List<String> players = new ArrayList<>();
+                        players.add(currentUsername);
+
+                        // Show lobby controller in room mode
+                        if (lobbyController != null) {
+                            System.out.println("🎮 Showing lobby for room: " + roomId);
+                            lobbyController.show(currentUsername, roomId, players);
+                        }
+                    }
+                    break;
                 case MESSAGE_TYPE_PLAYER_JOINED:
                 case MESSAGE_TYPE_PLAYER_LEFT:
-                    menuController.handleRoomUpdate(message);
+                    // Update lobby controller if active
                     if (lobbyController != null) {
                         lobbyController.handleRoomUpdate(message);
                     }
@@ -236,6 +255,10 @@ public class Main extends Application {
     }
     
     private void showLobby() {
+        System.out.println("🏠 showLobby() called");
+        System.out.println("   currentUsername: " + currentUsername);
+        System.out.println("   lobbyController is null: " + (lobbyController == null));
+
         // Show lobby in browse mode (not in a room)
         String username = currentUsername != null ? currentUsername : "Player";
         lobbyController.show(username, null, new java.util.ArrayList<>());
