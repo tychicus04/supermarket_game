@@ -62,7 +62,7 @@ public class MultiplayerGameSession {
 
             // Hết giờ
             if (timeLeft <= 0) {
-                endGame(null);
+                endGame(null ,null);
             }
         }, 1, 1, TimeUnit.SECONDS);
     }
@@ -111,7 +111,7 @@ public class MultiplayerGameSession {
     /**
      * Kết thúc game
      */
-    private void endGame(String reason) {
+    private void endGame(String reason, String leavingPlayer) {
         if (!gameActive) return; // Đảm bảo chỉ chạy 1 lần
         gameActive = false;
 
@@ -128,8 +128,16 @@ public class MultiplayerGameSession {
             payload = room.getFinalRankings();
         }
 
-        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload));
+//        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload));
+        Message gameOverMsg = new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload);
 
+        if (leavingPlayer != null) {
+            // Chỉ gửi cho người còn lại, KHÔNG gửi cho người vừa thoát
+            room.broadcastToOthers(gameOverMsg, leavingPlayer);
+        } else {
+            // Hết giờ bình thường, gửi cho tất cả mọi người
+            room.broadcast(gameOverMsg);
+        }
         // Broadcast game over
         // Client sẽ nhận S2C_GAME_OVER, gọi handleGameOver(),
         // sau đó gọi showGameOverScreen() (tự so sánh điểm và hiển thị Thắng/Thua)
@@ -140,11 +148,11 @@ public class MultiplayerGameSession {
     }
 
     public void stopGame() {
-        endGame(null);
+        endGame(null, null);
     }
 
-    public void stopGame(String reason) {
-        endGame(reason); // Dừng game với lý do
+    public void stopGame(String reason, String leavingPlayer) {
+        endGame(reason, leavingPlayer); // Dừng game với lý do
     }
 
     public boolean isActive() {

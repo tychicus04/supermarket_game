@@ -1,5 +1,6 @@
 package controllers;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -600,13 +601,32 @@ public class LobbyController {
                 updateRoomFromJson(data);
                 break;
 
-            case "PLAYER_JOINED":
-            case "PLAYER_LEFT":
-                String[] parts = data.split(":");
-                if (parts.length >= 2) {
-                    // Update player list (simplified - server should send full list)
-                    // For now, just update the count
-                    updatePlayerSlots();
+//            case "PLAYER_JOINED":
+//            case "PLAYER_LEFT":
+//                String[] parts = data.split(":");
+//                if (parts.length >= 2) {
+//                    // Update player list (simplified - server should send full list)
+//                    // For now, just update the count
+//                    updatePlayerSlots();
+//                }
+//                break;
+            case MESSAGE_TYPE_PLAYER_JOINED:
+                String[] joinParts = data.split(":");
+                if (joinParts.length >= 1) {
+                    String playerWhoJoined = joinParts[0];
+                    if (!playersInRoom.contains(playerWhoJoined)) {
+                        playersInRoom.add(playerWhoJoined);
+                        Platform.runLater(this::updatePlayerSlots);
+                    }
+                }
+                break;
+
+            case MESSAGE_TYPE_PLAYER_LEFT:
+                String[] leftParts = data.split(":");
+                if (leftParts.length >= 1) {
+                    String playerWhoLeft = leftParts[0];
+                    playersInRoom.remove(playerWhoLeft);
+                    Platform.runLater(this::updatePlayerSlots);
                 }
                 break;
         }

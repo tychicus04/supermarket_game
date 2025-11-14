@@ -240,7 +240,7 @@ public class ClientHandler implements Runnable {
             MultiplayerGameSession session = GameServer.getGameSession(roomId);
             if (session != null && session.isActive()) {
                 System.out.println("Player " + username + " left, stopping game in room " + roomId);
-                session.stopGame("OPPONENT_LEFT"); // Sẽ tự động broadcast GAME_OVER và remove session
+                session.stopGame("OPPONENT_LEFT", this.username); // Sẽ tự động broadcast GAME_OVER và remove session
             }
             String creator = room.getCreator();
             room.removePlayer(username);
@@ -696,7 +696,7 @@ public class ClientHandler implements Runnable {
                     MultiplayerGameSession session = GameServer.getGameSession(roomId);
                     if (session != null && session.isActive()) {
                         System.out.println("Player " + username + " disconnected, stopping game in room " + roomId);
-                        session.stopGame("OPPONENT_LEFT"); // Sẽ tự động broadcast GAME_OVER
+                        session.stopGame("OPPONENT_LEFT", this.username); // Sẽ tự động broadcast GAME_OVER
                     }
                     String creator = room.getCreator();
                     room.removePlayer(username);

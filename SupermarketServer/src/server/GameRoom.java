@@ -142,6 +142,20 @@ public class GameRoom {
     public Map<String, Integer> getScoresMap() {
         return this.scores;
     }
+
+    public void broadcastToOthers(Message message, String playerToExclude) {
+        synchronized (players) {
+            for (String player : players) {
+                // Chỉ gửi nếu không phải là người chơi bị loại trừ
+                if (!player.equals(playerToExclude)) {
+                    ClientHandler handler = GameServer.getClient(player);
+                    if (handler != null) {
+                        handler.sendMessage(message);
+                    }
+                }
+            }
+        }
+    }
     
     @Override
     public String toString() {
