@@ -1,6 +1,5 @@
 package controllers;
 
-import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -601,38 +600,13 @@ public class LobbyController {
                 updateRoomFromJson(data);
                 break;
 
-//            case "PLAYER_JOINED":
-//            case "PLAYER_LEFT":
-//                String[] parts = data.split(":");
-//                if (parts.length >= 2) {
-//                    // Update player list (simplified - server should send full list)
-//                    // For now, just update the count
-//                    updatePlayerSlots();
-//                }
-//                break;
-//        }
-            case MESSAGE_TYPE_PLAYER_JOINED:
-                // Data: "username:count"
-                String[] joinParts = data.split(":");
-                if (joinParts.length >= 1) {
-                    String playerWhoJoined = joinParts[0];
-                    // Thêm nếu chưa có
-                    if (!playersInRoom.contains(playerWhoJoined)) {
-                        playersInRoom.add(playerWhoJoined);
-                        // Cập nhật UI trên luồng JavaFX
-                        Platform.runLater(this::updatePlayerSlots);
-                    }
-                }
-                break;
-
-            case MESSAGE_TYPE_PLAYER_LEFT:
-                // Data: "username:count"
-                String[] leftParts = data.split(":");
-                if (leftParts.length >= 1) {
-                    String playerWhoLeft = leftParts[0];
-                    playersInRoom.remove(playerWhoLeft);
-                    // Cập nhật UI trên luồng JavaFX
-                    Platform.runLater(this::updatePlayerSlots);
+            case "PLAYER_JOINED":
+            case "PLAYER_LEFT":
+                String[] parts = data.split(":");
+                if (parts.length >= 2) {
+                    // Update player list (simplified - server should send full list)
+                    // For now, just update the count
+                    updatePlayerSlots();
                 }
                 break;
         }
@@ -1175,24 +1149,6 @@ public class LobbyController {
         }
 
         return result;
-    }
-
-    public void showCurrentRoom() {
-        // Nếu UI chính (mainRoot) đã được tạo và vẫn còn,
-        // chỉ cần set lại Scene cho Stage.
-        if (mainRoot != null && mainRoot.getScene() != null) {
-            stage.setScene(mainRoot.getScene());
-            stage.show();
-        } else {
-            // Nếu chưa có (lỗi) hoặc là lần đầu,
-            // tạo lại UI bằng thông tin đã lưu
-            if (currentUsername != null && currentRoomId != null) {
-                show(currentUsername, currentRoomId, playersInRoom);
-            } else {
-                // Fallback cuối cùng: Về menu
-                if (onBackToMenu != null) onBackToMenu.run();
-            }
-        }
     }
 }
 
