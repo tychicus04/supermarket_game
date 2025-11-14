@@ -10,6 +10,7 @@ import javafx.application.Platform;
 import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
+import utils.SoundManager;
 
 import static constants.GameConstants.*;
 
@@ -26,7 +27,7 @@ public class Main extends Application {
     private LobbyController lobbyController;
     private ImprovedGameController gameController;
     private LeaderboardController leaderboardController;
-    
+
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
@@ -234,7 +235,7 @@ public class Main extends Application {
     }
     
     private void showGameScreen(boolean isSinglePlayer) {
-        gameController.show(isSinglePlayer);
+        gameController.show(isSinglePlayer, currentUsername);
     }
     
     private void showLeaderboard() {
