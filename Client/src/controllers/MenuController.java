@@ -94,10 +94,14 @@ public class MenuController {
         Button multiBtn = new Button("MULTIPLAYER");
         multiBtn.getStyleClass().addAll("pixel-menu-btn", "btn-multi");
         multiBtn.setOnAction(e -> {
+            System.out.println("🎮 MULTIPLAYER button clicked!");
+            System.out.println("   onShowLobby is null: " + (onShowLobby == null));
             soundManager.play("menu_button");
             if (onShowLobby != null) {
+                System.out.println("   ✅ Calling onShowLobby.run()");
                 onShowLobby.run();
             } else {
+                System.out.println("   ⚠️ onShowLobby is null, calling showMultiplayerOptions()");
                 showMultiplayerOptions();
             }
         });
@@ -154,12 +158,13 @@ public class MenuController {
 
         stage.setScene(scene);
 
-        // Apply fade-in animations
-        animateButtonFadeIn(singleBtn, 0.0);
-        animateButtonFadeIn(multiBtn, 0.1);
-        animateButtonFadeIn(leaderboardBtn, 0.2);
-        animateButtonFadeIn(settingsBtn, 0.3);
-        animateButtonFadeIn(logoutBtn, 0.4);
+        // Ensure stage is visible
+        if (!stage.isShowing()) {
+            stage.show();
+        }
+        stage.toFront();
+
+        System.out.println("📱 Menu scene set, stage showing: " + stage.isShowing());
     }
 
     /**
