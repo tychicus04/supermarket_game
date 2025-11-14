@@ -67,7 +67,7 @@ public class Main extends Application {
         lobbyController = new LobbyController(primaryStage,
             () -> showGameScreen(false),
             this::showMenuScreen);
-        gameController = new ImprovedGameController(primaryStage, this::showMenuScreen);
+        gameController = new ImprovedGameController(primaryStage, this::showMenuScreen, networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
     }
     
@@ -176,7 +176,7 @@ public class Main extends Application {
                     }
                     break;
                 case MESSAGE_TYPE_GAME_START:
-                    gameController.handleGameStart();
+                    Platform.runLater(() -> showGameScreen(false));
                     break;
                 case MESSAGE_TYPE_S2C_GAME_STATE:
                     gameController.handleGameState(message);

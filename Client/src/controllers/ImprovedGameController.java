@@ -23,6 +23,9 @@ import utils.SoundManager;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+
+import static constants.GameConstants.MESSAGE_TYPE_GAME_SCORE;
 
 /**
  * Chỉ chỉnh sửa logic gameplay:
@@ -35,6 +38,7 @@ public class ImprovedGameController {
 
     private Stage primaryStage;
     private Runnable onBackToMenu;
+    private Consumer<Message> onSendMessage;
 
     // ====== Giữ nguyên các field UI đã có trong project ======
     private Label scoreLabel;
@@ -91,10 +95,11 @@ public class ImprovedGameController {
 
 
     // Constructor
-    public ImprovedGameController(Stage stage, Runnable onBackToMenu) {
+    public ImprovedGameController(Stage stage, Runnable onBackToMenu, Consumer<Message> onSendMessage) {
         this.primaryStage = stage;
         this.onBackToMenu = onBackToMenu;
         this.soundManager = SoundManager.getInstance();
+        this.onSendMessage = onSendMessage;
     }
 
     // ====== Public API (GIỮ NGUYÊN TÊN) ======
@@ -335,6 +340,7 @@ public class ImprovedGameController {
             if (currentIndex >= currentSequence.size()) {
                 // hoàn tất chuỗi -> cộng điểm bằng độ dài order, chuyển yêu cầu mới
                 myScore += currentSequenceLength;
+                sendScoreUpdate();
                 updateScoreLabels();
                 nextRequest();
                 //playCorrect() from SoundManager
@@ -343,9 +349,19 @@ public class ImprovedGameController {
         } else {
             // sai -> trừ 1 điểm, không chuyển yêu cầu
             myScore = Math.max(0, myScore - 1);
+            sendScoreUpdate();
             updateScoreLabels();
             shakeRequest();
             setCustomerEmotion("angry"); // Customer tức giận
+        }
+    }
+
+    private void sendScoreUpdate() {
+        // (isSinglePlayer sẽ luôn là false)
+        if (onSendMessage != null && !isSinglePlayer) {
+            // Sử dụng hằng số C2S (Client-to-Server)
+            Message scoreMsg = new Message(MESSAGE_TYPE_GAME_SCORE, String.valueOf(myScore));
+            onSendMessage.accept(scoreMsg);
         }
     }
 
@@ -717,11 +733,8 @@ public class ImprovedGameController {
             // Bỏ qua nếu phần timeout không hợp lệ
         }
 
-        // Cập nhật điểm
-        // Chúng ta cần reset điểm về 0 trước khi cập nhật
-        // vì server gửi toàn bộ trạng thái
-        int latestMyScore = 0;
-        int latestOpponentScore = 0;
+        int latestMyScore = this.myScore;
+        int latestOpponentScore = this.opponentScore;
 
         for (int i = 2; i < parts.length; i++) {
             String[] playerScore = parts[i].split(":");
