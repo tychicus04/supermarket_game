@@ -71,5 +71,4 @@ public class GameConstants {
     public static final String MESSAGE_TYPE_S2C_ITEM_WRONG = "S2C_ITEM_WRONG"; // Server confirm chọn sai
     public static final String MESSAGE_TYPE_S2C_GAME_STATE = "S2C_GAME_STATE"; // Sync game state
     public static final String MESSAGE_TYPE_S2C_GAME_OVER = "S2C_GAME_OVER"; // Game kết thúc
-
 }

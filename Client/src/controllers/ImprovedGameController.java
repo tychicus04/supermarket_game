@@ -706,19 +706,6 @@ public class ImprovedGameController {
             requestLabel.setText(renderSequence(currentSequence, currentIndex));
         }
     }
-//
-//    /** Called when receiving ITEM_RESULT from server */
-//    public void handleItemCorrect(Message message) {
-//        // Server confirms item was correct
-//        System.out.println("✓ Server confirmed correct item");
-//    }
-//
-//    /** Called when receiving ITEM_WRONG from server */
-//    public void handleItemWrong(Message message) {
-//        // Server says wrong item
-//        System.out.println("✗ Server says wrong item");
-//        shakeRequest();
-//    }
 
     /** Called when receiving GAME_STATE from server */
     public void handleGameState(Message message) {

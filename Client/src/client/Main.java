@@ -177,6 +177,12 @@ public class Main extends Application {
                 case MESSAGE_TYPE_GAME_START:
                     gameController.handleGameStart();
                     break;
+                case MESSAGE_TYPE_S2C_GAME_STATE:
+                    gameController.handleGameState(message);
+                    break;
+                case MESSAGE_TYPE_S2C_GAME_OVER:
+                    gameController.handleGameOver(message);
+                    break;
                 case MESSAGE_TYPE_SCORE_UPDATE:
                     gameController.handleScoreUpdate(message);
                     break;
@@ -186,6 +192,7 @@ public class Main extends Application {
                 case MESSAGE_TYPE_ERROR:
                     handleError(message);
                     break;
+
             }
         });
     }
