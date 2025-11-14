@@ -12,6 +12,8 @@ import models.Message;
 import network.NetworkManager;
 import utils.SoundManager;
 
+import java.util.List;
+
 import static constants.GameConstants.*;
 
 /**
@@ -21,6 +23,7 @@ public class Main extends Application {
     private NetworkManager networkManager;
     private Stage primaryStage;
     private String currentUsername;
+    private String currentRoomId;
 
     private LoginController loginController;
     private MenuController menuController;
@@ -96,11 +99,39 @@ public class Main extends Application {
                 case MESSAGE_TYPE_REGISTER_FAIL:
                     loginController.handleRegisterFail(message);
                     break;
+//                case MESSAGE_TYPE_ROOM_CREATED:
+//                case MESSAGE_TYPE_ROOM_JOINED:
+//                case MESSAGE_TYPE_PLAYER_JOINED:
+//                case MESSAGE_TYPE_PLAYER_LEFT:
+//                    menuController.handleRoomUpdate(message);
+//                    if (lobbyController != null) {
+//                        lobbyController.handleRoomUpdate(message);
+//                    }
+//                    break;
                 case MESSAGE_TYPE_ROOM_CREATED:
+                    String createdRoomData = message.getData().toString(); // "ROOM123:1"
+                    String[] createdParts = createdRoomData.split(":");
+                    this.currentRoomId = createdParts[0]; // <-- NHỚ ROOM ID
+
+                    List<String> creatorList = new java.util.ArrayList<>();
+                    creatorList.add(currentUsername);
+
+                    // Vẽ lại LobbyController ở chế độ "Phòng đợi"
+                    lobbyController.show(currentUsername, this.currentRoomId, creatorList);
+                    break;
+
                 case MESSAGE_TYPE_ROOM_JOINED:
+                    String joinedRoomData = message.getData().toString(); // "ROOM123:2"
+                    String[] joinedParts = joinedRoomData.split(":");
+                    this.currentRoomId = joinedParts[0]; // <-- NHỚ ROOM ID
+
+                    // GỌI HÀM SHOW ĐỂ VẼ LẠI GIAO DIỆN PHÒNG
+                    lobbyController.show(currentUsername, this.currentRoomId, new java.util.ArrayList<>());
+                    break;
+
                 case MESSAGE_TYPE_PLAYER_JOINED:
                 case MESSAGE_TYPE_PLAYER_LEFT:
-                    menuController.handleRoomUpdate(message);
+                    // Những tin nhắn này chỉ cập nhật danh sách người chơi, KHÔNG vẽ lại
                     if (lobbyController != null) {
                         lobbyController.handleRoomUpdate(message);
                     }
@@ -232,7 +263,7 @@ public class Main extends Application {
     }
     
     private void showGameScreen(boolean isSinglePlayer) {
-        gameController.show(isSinglePlayer, currentUsername);
+        gameController.show(isSinglePlayer, currentUsername, currentRoomId);
     }
     
     private void showLeaderboard() {

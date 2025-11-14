@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 import static constants.GameConstants.MESSAGE_TYPE_GAME_SCORE;
+import static constants.GameConstants.MESSAGE_TYPE_LEAVE_ROOM;
 
 /**
  * Chỉ chỉnh sửa logic gameplay:
@@ -94,6 +95,7 @@ public class ImprovedGameController {
     private String gameOverReason = null;
     private SoundManager soundManager;
     private int currentSequenceLength = 0; // Độ dài order hiện tại
+    private String currentRoomId;
 
 
     // Constructor
@@ -108,9 +110,10 @@ public class ImprovedGameController {
     // ====== Public API (GIỮ NGUYÊN TÊN) ======
 
     /** Màn chơi chính */
-    public void show(boolean isSinglePlayer, String username) {
+    public void show(boolean isSinglePlayer, String username, String roomId) {
         this.isSinglePlayer = isSinglePlayer;
         this.myUsername = username;
+        this.currentRoomId = roomId;
         // -- xây UI (giữ cấu trúc cũ, chỉ tóm tắt phần không ảnh hưởng logic) --
         root = new VBox(16);
         root.setPadding(new Insets(20));
@@ -230,6 +233,9 @@ public class ImprovedGameController {
         backButton.setStyle("-fx-font-size: 14px; -fx-background-color: #95a5a6; -fx-text-fill: white; -fx-padding: 8 15;");
         backButton.setOnAction(e -> {
             stopAllTimers();
+            if (onSendMessage != null && currentRoomId != null && !isSinglePlayer) {
+                onSendMessage.accept(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
+            }
             onBackToMenu.run();
         });
 
