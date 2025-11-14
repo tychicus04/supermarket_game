@@ -62,7 +62,7 @@ public class MultiplayerGameSession {
 
             // Hết giờ
             if (timeLeft <= 0) {
-                endGame();
+                endGame(null);
             }
         }, 1, 1, TimeUnit.SECONDS);
     }
@@ -111,13 +111,24 @@ public class MultiplayerGameSession {
     /**
      * Kết thúc game
      */
-    private void endGame() {
+    private void endGame(String reason) {
         if (!gameActive) return; // Đảm bảo chỉ chạy 1 lần
         gameActive = false;
 
         // Dừng timer
         if (gameTimerTask != null) gameTimerTask.cancel(false);
         if (scheduler != null) scheduler.shutdown();
+
+        String payload;
+        if (reason != null) {
+            // Nếu có lý do (VD: "OPPONENT_LEFT"), gửi lý do đó
+            payload = reason;
+        } else {
+            // Nếu không (hết giờ bình thường), gửi bảng xếp hạng
+            payload = room.getFinalRankings();
+        }
+
+        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload));
 
         // Broadcast game over
         // Client sẽ nhận S2C_GAME_OVER, gọi handleGameOver(),
@@ -129,9 +140,11 @@ public class MultiplayerGameSession {
     }
 
     public void stopGame() {
-        if (gameActive) {
-            endGame();
-        }
+        endGame(null);
+    }
+
+    public void stopGame(String reason) {
+        endGame(reason); // Dừng game với lý do
     }
 
     public boolean isActive() {

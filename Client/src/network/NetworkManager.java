@@ -22,7 +22,7 @@ public class NetworkManager {
     private Thread listenerThread;
     private boolean connected = false;
     
-    private String serverHost = "10.212.63.47";
+    private String serverHost = "localhost";
     private int serverPort = 8888;
     
     private NetworkManager() {

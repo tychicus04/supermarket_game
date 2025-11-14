@@ -1150,5 +1150,23 @@ public class LobbyController {
 
         return result;
     }
+
+    public void showCurrentRoom() {
+        // Nếu UI chính (mainRoot) đã được tạo và vẫn còn,
+        // chỉ cần set lại Scene cho Stage.
+        if (mainRoot != null && mainRoot.getScene() != null) {
+            stage.setScene(mainRoot.getScene());
+            stage.show();
+        } else {
+            // Nếu chưa có (lỗi) hoặc là lần đầu,
+            // tạo lại UI bằng thông tin đã lưu
+            if (currentUsername != null && currentRoomId != null) {
+                show(currentUsername, currentRoomId, playersInRoom);
+            } else {
+                // Fallback cuối cùng: Về menu
+                if (onBackToMenu != null) onBackToMenu.run();
+            }
+        }
+    }
 }
 

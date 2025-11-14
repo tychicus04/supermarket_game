@@ -38,6 +38,7 @@ public class ImprovedGameController {
 
     private Stage primaryStage;
     private Runnable onBackToMenu;
+    private Runnable onBackToRoom;
     private Consumer<Message> onSendMessage;
 
     // ====== Giữ nguyên các field UI đã có trong project ======
@@ -90,14 +91,16 @@ public class ImprovedGameController {
     private String myUsername;
     private Label gameTimeLabel; // Hiển thị thời gian còn lại của màn chơi
     private boolean gameEnded = false;
+    private String gameOverReason = null;
     private SoundManager soundManager;
     private int currentSequenceLength = 0; // Độ dài order hiện tại
 
 
     // Constructor
-    public ImprovedGameController(Stage stage, Runnable onBackToMenu, Consumer<Message> onSendMessage) {
+    public ImprovedGameController(Stage stage, Runnable onBackToMenu, Runnable onBackToRoom, Consumer<Message> onSendMessage) {
         this.primaryStage = stage;
         this.onBackToMenu = onBackToMenu;
+        this.onBackToRoom = onBackToRoom;
         this.soundManager = SoundManager.getInstance();
         this.onSendMessage = onSendMessage;
     }
@@ -498,10 +501,17 @@ public class ImprovedGameController {
             gameOverRoot.setStyle("-fx-background-color: linear-gradient(to bottom, #2c3e50, #34495e);");
         }
 
-        // --- Logic so sánh điểm (ĐÃ SỬA) ---
+        // --- Logic so sánh điểm ---
         String titleText;
         Color titleColor;
-        if (myScore > opponentScore) {
+
+        if (gameOverReason != null && gameOverReason.equals("OPPONENT_LEFT")) {
+            titleText = "🏆 OPPONENT LEFT!";
+            titleColor = Color.web("#f39c12"); // Màu vàng/cam chiến thắng
+            soundManager.playGameOver(); // Chơi âm thanh chiến thắng
+        }
+        else{
+            if (myScore > opponentScore) {
             titleText = "🎉 YOU WIN! 🎉";
             titleColor = Color.web("#2ecc71"); // Green
             soundManager.playGameOver(); // (Hoặc âm thanh chiến thắng)
@@ -512,21 +522,19 @@ public class ImprovedGameController {
         } else {
             titleText = "🤝 IT'S A DRAW! 🤝";
             titleColor = Color.web("#f39c12"); // Orange
-        }
+        }}
 
-        // Game Over Title (ĐÃ SỬA)
         Label gameOverTitle = new Label(titleText);
         gameOverTitle.setFont(Font.font("Arial", 60));
         gameOverTitle.setTextFill(titleColor);
         gameOverTitle.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 15, 0, 0, 3);");
 
-        // Score Panel (ĐÃ SỬA)
         VBox scorePanel = new VBox(15);
         scorePanel.setAlignment(Pos.CENTER);
         scorePanel.setPadding(new Insets(30));
         scorePanel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.9); -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 20, 0, 0, 5);");
 
-        // Your Score (MỚI)
+        // Your Score
         Label yourScoreLabel = new Label("Your Score (" + (myUsername != null ? myUsername : "You") + ")");
         yourScoreLabel.setFont(Font.font("Arial", 24));
         yourScoreLabel.setTextFill(Color.web("#3498db"));
@@ -534,7 +542,7 @@ public class ImprovedGameController {
         yourScoreValue.setFont(Font.font("Arial", 48));
         yourScoreValue.setStyle("-fx-font-weight: bold;");
 
-        // Opponent's Score (MỚI)
+        // Opponent's Score
         Label oppScoreLabel = new Label("Opponent's Score");
         oppScoreLabel.setFont(Font.font("Arial", 24));
         oppScoreLabel.setTextFill(Color.web("#e74c3c"));
@@ -542,17 +550,20 @@ public class ImprovedGameController {
         oppScoreValue.setFont(Font.font("Arial", 48));
         oppScoreValue.setStyle("-fx-font-weight: bold;");
 
-        // Thêm các label mới vào scorePanel
         scorePanel.getChildren().addAll(yourScoreLabel, yourScoreValue, oppScoreLabel, oppScoreValue);
 
-        // (Các label "FINAL SCORE", "points", "performanceLabel" đã bị xóa)
-
-        // Buttons (ĐÃ SỬA)
+        // Buttons
         HBox buttonBox = new HBox(20);
         buttonBox.setAlignment(Pos.CENTER);
 
-        // (Nút "Play Again" đã bị xóa vì không hợp lệ trong multiplayer)
-
+        Button backToRoomBtn = new Button("🔙 Back to Room");
+        backToRoomBtn.setFont(Font.font("Arial", 18));
+        backToRoomBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
+        backToRoomBtn.setOnAction(e -> {
+                    if (onBackToRoom != null) {
+                        onBackToRoom.run();
+                    }
+                });
         Button mainMenuBtn = new Button("🏠 Main Menu");
         mainMenuBtn.setFont(Font.font("Arial", 18));
         mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
@@ -564,8 +575,7 @@ public class ImprovedGameController {
             }
         });
 
-        // Chỉ thêm nút Main Menu
-        buttonBox.getChildren().add(mainMenuBtn);
+        buttonBox.getChildren().addAll(mainMenuBtn, backToRoomBtn);
 
         gameOverRoot.getChildren().addAll(gameOverTitle, scorePanel, buttonBox);
 
@@ -725,6 +735,7 @@ public class ImprovedGameController {
         gameEnded = true;
         stopAllTimers();
 
+        this.gameOverReason = message.getData().toString();
         // Show option to go back to menu
         Platform.runLater(this::showGameOverScreen);
     }

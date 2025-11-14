@@ -67,7 +67,7 @@ public class Main extends Application {
         lobbyController = new LobbyController(primaryStage,
             () -> showGameScreen(false),
             this::showMenuScreen);
-        gameController = new ImprovedGameController(primaryStage, this::showMenuScreen, networkManager::sendMessage);
+        gameController = new ImprovedGameController(primaryStage, this::showMenuScreen, lobbyController::showCurrentRoom, networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
     }
     
