@@ -73,15 +73,7 @@ public class Main extends Application {
         gameController = new ImprovedGameController(
                 primaryStage,
                 this::showMenuScreen,
-                () -> {
-            // Hiển thị lại lobby với ID phòng đã lưu
-                    if (currentUsername != null && currentRoomId != null) {
-                        lobbyController.show(currentUsername, currentRoomId, new java.util.ArrayList<>());
-                    } else {
-                        // Fallback: Nếu có lỗi, về lobby chính
-                        showLobby();
-                    }
-                }, 
+                lobbyController::showCurrentRoom,
                 networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
     }
