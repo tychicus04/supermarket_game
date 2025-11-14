@@ -133,7 +133,7 @@ public class MultiplayerGameSession {
         // Broadcast game over
         // Client sẽ nhận S2C_GAME_OVER, gọi handleGameOver(),
         // sau đó gọi showGameOverScreen() (tự so sánh điểm và hiển thị Thắng/Thua)
-        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, room.getFinalRankings()));
+//        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, room.getFinalRankings()));
 
         System.out.println("🏁 Game ended in room " + roomId);
         GameServer.removeGameSession(roomId);
