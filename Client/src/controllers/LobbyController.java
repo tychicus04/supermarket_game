@@ -469,7 +469,7 @@ public class LobbyController {
         startGameButton.setDisable(playersInRoom.size() < 2);
 
         // Only show start button for room creator
-        if (!currentUsername.equals(playersInRoom.get(0))) {
+        if (playersInRoom.isEmpty() || !currentUsername.equals(playersInRoom.get(0))) {
             startGameButton.setVisible(false);
         }
 

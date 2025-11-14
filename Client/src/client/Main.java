@@ -70,7 +70,19 @@ public class Main extends Application {
         lobbyController = new LobbyController(primaryStage,
             () -> showGameScreen(false),
             this::showMenuScreen);
-        gameController = new ImprovedGameController(primaryStage, this::showMenuScreen, this::showLobby, networkManager::sendMessage);
+        gameController = new ImprovedGameController(
+                primaryStage,
+                this::showMenuScreen,
+                () -> {
+            // Hiển thị lại lobby với ID phòng đã lưu
+                    if (currentUsername != null && currentRoomId != null) {
+                        lobbyController.show(currentUsername, currentRoomId, new java.util.ArrayList<>());
+                    } else {
+                        // Fallback: Nếu có lỗi, về lobby chính
+                        showLobby();
+                    }
+                }, 
+                networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
     }
     
@@ -111,22 +123,22 @@ public class Main extends Application {
                 case MESSAGE_TYPE_ROOM_CREATED:
                     String createdRoomData = message.getData().toString(); // "ROOM123:1"
                     String[] createdParts = createdRoomData.split(":");
-                    String createdRoomId = createdParts[0];
+                    this.currentRoomId = createdParts[0];
                     List<String> creatorList = new java.util.ArrayList<>();
                     creatorList.add(currentUsername);
 
                     // Vẽ lại LobbyController ở chế độ "Phòng đợi"
-                    lobbyController.show(currentUsername, createdRoomId, creatorList);
+                    lobbyController.show(currentUsername, this.currentRoomId, creatorList);
                     break;
 
                 case MESSAGE_TYPE_ROOM_JOINED:
                     String joinedRoomData = message.getData().toString(); // "ROOM123:2"
                     String[] joinedParts = joinedRoomData.split(":");
-                    String joinedRoomId = joinedParts[0];
+                    this.currentRoomId = joinedParts[0];
 
                     // GỌI HÀM SHOW ĐỂ VẼ LẠI GIAO DIỆN PHÒNG
                     // (Danh sách người chơi sẽ được cập nhật bằng các tin nhắn PLAYER_JOINED)
-                    lobbyController.show(currentUsername, joinedRoomId, new java.util.ArrayList<>());
+                    lobbyController.show(currentUsername, this.currentRoomId, new java.util.ArrayList<>());
                     break;
 
                 case MESSAGE_TYPE_PLAYER_JOINED:
