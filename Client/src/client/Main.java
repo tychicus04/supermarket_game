@@ -111,22 +111,22 @@ public class Main extends Application {
                 case MESSAGE_TYPE_ROOM_CREATED:
                     String createdRoomData = message.getData().toString(); // "ROOM123:1"
                     String[] createdParts = createdRoomData.split(":");
-                    this.currentRoomId = createdParts[0]; // <-- NHỚ ROOM ID
-
+                    String createdRoomId = createdParts[0];
                     List<String> creatorList = new java.util.ArrayList<>();
                     creatorList.add(currentUsername);
 
                     // Vẽ lại LobbyController ở chế độ "Phòng đợi"
-                    lobbyController.show(currentUsername, this.currentRoomId, creatorList);
+                    lobbyController.show(currentUsername, createdRoomId, creatorList);
                     break;
 
                 case MESSAGE_TYPE_ROOM_JOINED:
                     String joinedRoomData = message.getData().toString(); // "ROOM123:2"
                     String[] joinedParts = joinedRoomData.split(":");
-                    this.currentRoomId = joinedParts[0]; // <-- NHỚ ROOM ID
+                    String joinedRoomId = joinedParts[0];
 
                     // GỌI HÀM SHOW ĐỂ VẼ LẠI GIAO DIỆN PHÒNG
-                    lobbyController.show(currentUsername, this.currentRoomId, new java.util.ArrayList<>());
+                    // (Danh sách người chơi sẽ được cập nhật bằng các tin nhắn PLAYER_JOINED)
+                    lobbyController.show(currentUsername, joinedRoomId, new java.util.ArrayList<>());
                     break;
 
                 case MESSAGE_TYPE_PLAYER_JOINED:

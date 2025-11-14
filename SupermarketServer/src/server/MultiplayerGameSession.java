@@ -128,7 +128,7 @@ public class MultiplayerGameSession {
             payload = room.getFinalRankings();
         }
 
-//        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload));
+        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload));
         Message gameOverMsg = new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload);
 
         if (leavingPlayer != null) {
