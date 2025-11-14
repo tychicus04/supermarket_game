@@ -20,9 +20,9 @@ public class GameServer {
     private static final int PORT = 8888;
     private static final Map<String, ClientHandler> connectedClients = new ConcurrentHashMap<String, ClientHandler>();
     private static final Map<String, GameRoom> activeRooms = new ConcurrentHashMap<String, GameRoom>();
-    private static final Map<String, MultiplayerGameSession> gameSessions = new ConcurrentHashMap<String, MultiplayerGameSession>();
+    private static final Map<String, MultiplayerGameSession> gameSessions = new ConcurrentHashMap<>();
     private static DatabaseManager database;
-    
+
     public static void main(String[] args) {
         database = new DatabaseManager();
         if (!database.initialize()) {
@@ -30,20 +30,20 @@ public class GameServer {
             return;
         }
         System.out.println("Database initialized successfully");
-        
+
         // Start server
         try {
             ServerSocket serverSocket = new ServerSocket(PORT);
             System.out.println("Server started on port " + PORT);
             System.out.println("Waiting for connections...\n");
-            
+
             // Room cleanup thread
             startRoomCleanupThread();
-            
+
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("New connection from: " + clientSocket.getInetAddress());
-                
+
                 ClientHandler handler = new ClientHandler(clientSocket, database);
                 new Thread(handler).start();
             }
@@ -52,7 +52,7 @@ public class GameServer {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * Thread to cleanup empty rooms
      */
@@ -71,7 +71,7 @@ public class GameServer {
             }
         }, 60, 60, TimeUnit.SECONDS);
     }
-    
+
     /**
      * Register a client connection
      */
@@ -79,7 +79,7 @@ public class GameServer {
         connectedClients.put(username, handler);
         System.out.println("Player registered: " + username + " (Total: " + connectedClients.size() + ")");
     }
-    
+
     /**
      * Unregister a client connection
      */
@@ -87,7 +87,7 @@ public class GameServer {
         connectedClients.remove(username);
         System.out.println("Player disconnected: " + username + " (Total: " + connectedClients.size() + ")");
     }
-    
+
     /**
      * Create a new game room
      */
@@ -97,14 +97,14 @@ public class GameServer {
         System.out.println("Room created: " + roomId + " by " + creator);
         return room;
     }
-    
+
     /**
      * Get a game room by ID
      */
     public static GameRoom getRoom(String roomId) {
         return activeRooms.get(roomId);
     }
-    
+
     /**
      * Delete a room
      */
@@ -126,7 +126,7 @@ public class GameServer {
     public static ClientHandler getClient(String username) {
         return connectedClients.get(username);
     }
-    
+
     /**
      * Broadcast message to all players in a room
      */
@@ -161,52 +161,30 @@ public class GameServer {
         return json.toString();
     }
 
-    /**
-     * Start a multiplayer game session
-     */
     public static MultiplayerGameSession startGameSession(String roomId) {
         GameRoom room = activeRooms.get(roomId);
-        if (room == null) {
-            System.err.println("❌ Cannot start game: room not found " + roomId);
-            return null;
-        }
-
-        if (room.getPlayerCount() != 2) {
-            System.err.println("❌ Cannot start game: need exactly 2 players, got " + room.getPlayerCount());
-            return null;
+        if (room == null || gameSessions.containsKey(roomId)) {
+            return null; // Phòng không tồn tại hoặc game đã bắt đầu
         }
 
         MultiplayerGameSession session = new MultiplayerGameSession(roomId, room);
         gameSessions.put(roomId, session);
-        session.startGame();
-
+        session.startGame(); // <--- Dòng này sẽ bắt đầu timer và gửi GAME_START
         return session;
     }
 
     /**
-     * Get active game session
+     * (MỚI) Lấy một game session đang hoạt động
      */
     public static MultiplayerGameSession getGameSession(String roomId) {
         return gameSessions.get(roomId);
     }
 
     /**
-     * Remove game session
+     * (MỚI) Xóa một game session (thường được gọi bởi chính session khi kết thúc)
      */
     public static void removeGameSession(String roomId) {
-        MultiplayerGameSession session = gameSessions.remove(roomId);
-        if (session != null) {
-            System.out.println("🗑️ Game session removed: " + roomId);
-        }
-    }
-
-    /**
-     * Handle item selected in multiplayer game
-     */
-    public static void handleItemSelected(String roomId, String username, String itemName) {
-        MultiplayerGameSession session = gameSessions.get(roomId);
-        if (session != null && session.isActive()) {
-            session.handleItemSelected(username, itemName);
-        }
+        gameSessions.remove(roomId);
+        System.out.println("Session removed for room: " + roomId);
     }
 }

@@ -251,6 +251,8 @@ public class ImprovedGameController {
         myScore = 0;
         opponentScore = 0;
         gameEnded = false;
+
+        sendScoreUpdate();
         updateScoreLabels();
 
         gameStartMillis = System.currentTimeMillis();
@@ -274,28 +276,6 @@ public class ImprovedGameController {
         nextRequest();
         setCustomerEmotion("neutral");
     }
-
-    /** Cập nhật điểm từ server – GIỮ TÊN */
-    public void handleScoreUpdate(Message message) {
-        // Có thể parse message để cập nhật opponentScore nếu server gửi
-        // Ở client demo: chỉ in log để giữ API
-        System.out.println("Score update: " + message.getData());
-    }
-
-    /** Server báo đúng item – GIỮ TÊN */
-    public void handleItemCorrect(Message message) {
-        // Trong luật mới, điểm chỉ + khi hoàn tất cả chuỗi
-        // Giữ nguyên để không phá API; không cộng lẻ theo item nữa
-        System.out.println("Correct (per-item) ignored – using per-sequence scoring.");
-    }
-
-    /** Server báo sai item – GIỮ TÊN */
-    public void handleItemWrong(Message message) {
-        // Giữ API, nhưng logic trừ điểm đã chuyển sang handleKey()
-        System.out.println("Wrong (per-item) handled locally.");
-    }
-
-    // ====== Logic gameplay MỚI ======
 
     /** Tạo map phím 1..9 vào item theo ma trận cố định */
     private void initKeyMap() {
@@ -689,28 +669,6 @@ public class ImprovedGameController {
             "-fx-border-insets: 0; " +
             "-fx-effect: dropshadow(three-pass-box, rgba(231,76,60,0.6), 8, 0, 3, 3);"
         );
-    }
-
-    // ====== Giữ nguyên chữ ký phương thức cũ (nếu có) ======
-
-    /** Ví dụ: vẫn trả emoji nếu project cũ gọi tới (không ảnh hưởng gameplay) */
-    private String getEmojiForItem(String itemName) {
-        // Fallback if AssetManager doesn't have emoji method
-        return "📦";
-    }
-
-    // ====== Methods called from Main.java ======
-
-    /** Called when receiving NEW_REQUEST from server (multiplayer) */
-    public void handleNewRequest(Message message) {
-        // In multiplayer mode, server sends the new request
-        if (!isSinglePlayer) {
-            String data = message.getData().toString();
-            String[] items = data.split(",");
-            currentSequence = new ArrayList<>(Arrays.asList(items));
-            currentIndex = 0;
-            requestLabel.setText(renderSequence(currentSequence, currentIndex));
-        }
     }
 
     /** Called when receiving GAME_STATE from server */

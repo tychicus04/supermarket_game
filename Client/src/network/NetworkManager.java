@@ -190,10 +190,6 @@ public class NetworkManager {
         sendMessage(new Message(MESSAGE_TYPE_START_GAME, roomId));
     }
     
-    public void sendScore(String roomId, int score) {
-        sendMessage(new Message(MESSAGE_TYPE_GAME_SCORE, roomId + ":" + score));
-    }
-    
     public void getLeaderboard() {
         sendMessage(new Message(MESSAGE_TYPE_LEADERBOARD, ""));
     }

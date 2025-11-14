@@ -184,9 +184,6 @@ public class Main extends Application {
                 case MESSAGE_TYPE_S2C_GAME_OVER:
                     gameController.handleGameOver(message);
                     break;
-                case MESSAGE_TYPE_SCORE_UPDATE:
-                    gameController.handleScoreUpdate(message);
-                    break;
                 case MESSAGE_TYPE_LEADERBOARD:
                     leaderboardController.handleLeaderboard(message);
                     break;

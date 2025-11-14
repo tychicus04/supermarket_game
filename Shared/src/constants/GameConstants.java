@@ -58,17 +58,12 @@ public class GameConstants {
     public static final String MESSAGE_TYPE_LOGOUT_SUCCESS = "LOGOUT_SUCCESS";
     public static final String MESSAGE_TYPE_S2C_FRIEND_STATUS_CHANGED = "S2C_FRIEND_STATUS_CHANGED";
     public static final String MESSAGE_TYPE_GAME_START = "GAME_START";
-    public static final String MESSAGE_TYPE_SCORE_UPDATE = "SCORE_UPDATE";
     public static final String MESSAGE_TYPE_ERROR = "ERROR";
     public static final String MESSAGE_TYPE_ROOM_DELETED = "ROOM_DELETED";
     public static final String MESSAGE_TYPE_S2C_JOIN_REQUEST_SENT = "S2C_JOIN_REQUEST_SENT";
     public static final String MESSAGE_TYPE_S2C_JOIN_REQUEST_FAIL = "S2C_JOIN_REQUEST_FAIL";
 
     // Multiplayer game sync messages
-    public static final String MESSAGE_TYPE_ITEM_SELECTED = "C2S_ITEM_SELECTED"; // Client chọn item
-    public static final String MESSAGE_TYPE_S2C_NEW_REQUEST = "S2C_NEW_REQUEST"; // Server gửi món hàng mới
-    public static final String MESSAGE_TYPE_S2C_ITEM_CORRECT = "S2C_ITEM_CORRECT"; // Server confirm chọn đúng
-    public static final String MESSAGE_TYPE_S2C_ITEM_WRONG = "S2C_ITEM_WRONG"; // Server confirm chọn sai
     public static final String MESSAGE_TYPE_S2C_GAME_STATE = "S2C_GAME_STATE"; // Sync game state
     public static final String MESSAGE_TYPE_S2C_GAME_OVER = "S2C_GAME_OVER"; // Game kết thúc
 }

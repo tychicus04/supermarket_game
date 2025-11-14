@@ -22,6 +22,7 @@ public class ClientHandler implements Runnable {
     private ObjectInputStream in;
     private String username;
     private volatile boolean running = true;
+    private String currentRoomId = null;
     
     public ClientHandler(Socket socket, DatabaseManager database) {
         this.socket = socket;
@@ -123,9 +124,6 @@ public class ClientHandler implements Runnable {
                 case MESSAGE_TYPE_INVITE_TO_ROOM:
                     handleInviteToRoom(msg);
                     break;
-                case MESSAGE_TYPE_ITEM_SELECTED:
-                    handleItemSelected(msg);
-                    break;
                 case MESSAGE_TYPE_LOGOUT:
                     handleLogout();
                     break;
@@ -200,7 +198,8 @@ public class ClientHandler implements Runnable {
         String roomId = "ROOM" + System.currentTimeMillis();
         GameRoom room = GameServer.createRoom(roomId, username);
         room.addPlayer(username);
-        
+        this.currentRoomId = roomId;
+
         sendMessage(new Message(MESSAGE_TYPE_ROOM_CREATED, roomId + ":" + room.getPlayerCount()));
     }
     
@@ -219,6 +218,7 @@ public class ClientHandler implements Runnable {
         }
         
         if (room.addPlayer(username)) {
+            this.currentRoomId = roomId;
             sendMessage(new Message(MESSAGE_TYPE_ROOM_JOINED, roomId + ":" + room.getPlayerCount()));
 
             // Notify all players in room
@@ -237,8 +237,14 @@ public class ClientHandler implements Runnable {
         GameRoom room = GameServer.getRoom(roomId);
         
         if (room != null) {
+            MultiplayerGameSession session = GameServer.getGameSession(roomId);
+            if (session != null && session.isActive()) {
+                System.out.println("Player " + username + " left, stopping game in room " + roomId);
+                session.stopGame(); // Sẽ tự động broadcast GAME_OVER và remove session
+            }
             String creator = room.getCreator();
             room.removePlayer(username);
+            this.currentRoomId = null;
 
             // Check if room should be deleted
             boolean shouldDelete = false;
@@ -270,72 +276,41 @@ public class ClientHandler implements Runnable {
     private void handleStartGame(Message msg) {
         String roomId = (String) msg.getData();
         GameRoom room = GameServer.getRoom(roomId);
-        
-        if (room != null && room.getPlayerCount() == 2) {
-            // Start multiplayer game session
+
+        if (room == null) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Room not found"));
+            return;
+        }
+
+        // Kiểm tra xem người gửi có phải chủ phòng không
+        if (!username.equals(room.getCreator())) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Only the room creator can start the game"));
+            return;
+        }
+
+        // Logic của client (ImprovedGameController) được thiết kế cho 2 người
+        if (room.getPlayerCount() == 2) {
             MultiplayerGameSession session = GameServer.startGameSession(roomId);
             if (session != null) {
                 System.out.println("🎮 Multiplayer game started in room: " + roomId);
             } else {
-                sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to start game"));
+                sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to start game (session active?)"));
             }
-        } else if (room != null && room.canStart()) {
-            // Legacy support for 2+ players
-            GameServer.broadcastToRoom(roomId, new Message(MESSAGE_TYPE_GAME_START, roomId));
-            System.out.println("🎮 Game started in room: " + roomId);
         } else {
-            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Cannot start game (need exactly 2 players)"));
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Game requires exactly 2 players to start"));
         }
-    }
-
-    /**
-     * Handle item selection in multiplayer game
-     */
-    private void handleItemSelected(Message msg) {
-        if (username == null) return;
-
-        String data = (String) msg.getData();
-        String[] parts = data.split("\\|");
-        if (parts.length != 2) return;
-
-        String roomId = parts[0];
-        String itemName = parts[1];
-
-        System.out.println("📦 " + username + " selected: " + itemName + " in room " + roomId);
-
-        // Forward to game session
-        GameServer.handleItemSelected(roomId, username, itemName);
     }
 
     private void handleGameScore(Message msg) {
-        if (username == null) return;
-        
-        String[] data = msg.getData().split(":", 2);
-        if (data.length != 2) return;
-        
-        String roomId = data[0];
-        int score;
-        
-        try {
-            score = Integer.parseInt(data[1]);
-        } catch (NumberFormatException e) {
-            return;
+        if (username == null || currentRoomId == null) return;
+
+        MultiplayerGameSession session = GameServer.getGameSession(currentRoomId);
+
+        // Nếu có session và game đang chạy
+        if (session != null && session.isActive()) {
+            // Gọi hàm mới của session
+            session.handlePlayerScoreUpdate(username, msg.getData().toString());
         }
-        
-        // Save to database
-        database.saveScore(username, score);
-        
-        // Update room if multiplayer
-        if (!roomId.equals("SINGLE")) {
-            GameRoom room = GameServer.getRoom(roomId);
-            if (room != null) {
-                room.updateScore(username, score);
-                GameServer.broadcastToRoom(roomId, 
-                    new Message(MESSAGE_TYPE_SCORE_UPDATE, username + ":" + score));
-            }
-        }
-        
-        System.out.println("📊 Score saved: " + username + " = " + score);
     }
     
     private void handleGetLeaderboard() {
@@ -714,9 +689,15 @@ public class ClientHandler implements Runnable {
         running = false;
         
         if (username != null) {
+            this.currentRoomId = null;
             for (String roomId : GameServer.getAllRoomIds()) {
                 GameRoom room = GameServer.getRoom(roomId);
                 if (room != null && room.getPlayers().contains(username)) {
+                    MultiplayerGameSession session = GameServer.getGameSession(roomId);
+                    if (session != null && session.isActive()) {
+                        System.out.println("Player " + username + " disconnected, stopping game in room " + roomId);
+                        session.stopGame(); // Sẽ tự động broadcast GAME_OVER
+                    }
                     String creator = room.getCreator();
                     room.removePlayer(username);
 

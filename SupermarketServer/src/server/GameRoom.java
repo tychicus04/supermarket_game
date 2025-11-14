@@ -130,6 +130,18 @@ public class GameRoom {
     public long getCreatedTime() {
         return createdTime;
     }
+
+    public void resetScores() {
+        synchronized (scores) {
+            for (String player : players) {
+                scores.put(player, 0);
+            }
+        }
+    }
+
+    public Map<String, Integer> getScoresMap() {
+        return this.scores;
+    }
     
     @Override
     public String toString() {
