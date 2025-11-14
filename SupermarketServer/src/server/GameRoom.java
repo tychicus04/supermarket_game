@@ -16,7 +16,7 @@ public class GameRoom {
     private final String creator;
     private final List<String> players;
     private final Map<String, Integer> scores;
-    private final int maxPlayers = 4;
+    private final int maxPlayers = 2;
     private final long createdTime;
     
     public GameRoom(String roomId, String creator) {

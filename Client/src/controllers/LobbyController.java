@@ -60,7 +60,7 @@ public class LobbyController {
         this.playersInRoom = new ArrayList<>();
         this.friendsList = new ArrayList<>();
         this.availableRooms = new ArrayList<>();
-        this.playerLabels = new Label[4];
+        this.playerLabels = new Label[2];
     }
 
     public void show(String username, String roomId, List<String> initialPlayers) {
@@ -295,7 +295,7 @@ public class LobbyController {
         playerSlotsBox = new VBox(10);
         playerSlotsBox.setAlignment(Pos.CENTER);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 2; i++) {
             HBox playerSlot = createPlayerSlot(i);
             playerSlotsBox.getChildren().add(playerSlot);
         }
@@ -481,7 +481,7 @@ public class LobbyController {
      * Update player slots display
      */
     private void updatePlayerSlots() {
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 2; i++) {
             Label label = playerLabels[i];
             if (i < playersInRoom.size()) {
                 String playerName = playersInRoom.get(i);

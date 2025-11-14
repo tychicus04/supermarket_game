@@ -216,14 +216,20 @@ public class ClientHandler implements Runnable {
             sendMessage(new Message(MESSAGE_TYPE_JOIN_FAIL, "Room not found"));
             return;
         }
-        
+
+        List<String> playersAlreadyInRoom = room.getPlayers();
+
         if (room.addPlayer(username)) {
             this.currentRoomId = roomId;
+
             sendMessage(new Message(MESSAGE_TYPE_ROOM_JOINED, roomId + ":" + room.getPlayerCount()));
 
-            // Notify all players in room
-            GameServer.broadcastToRoom(roomId, 
-                new Message(MESSAGE_TYPE_PLAYER_JOINED, username + ":" + room.getPlayerCount()));
+            GameServer.broadcastToRoom(roomId,
+                    new Message(MESSAGE_TYPE_PLAYER_JOINED, username + ":" + room.getPlayerCount()));
+
+            for (String existingPlayer : playersAlreadyInRoom) {
+                sendMessage(new Message(MESSAGE_TYPE_PLAYER_JOINED, existingPlayer + ":" + room.getPlayerCount()));
+            }
 
             System.out.println("👥 " + username + " joined room " + roomId + 
                              " (" + room.getPlayerCount() + "/4)");
@@ -343,7 +349,7 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        if (room.getPlayerCount() >= 4) {
+        if (room.getPlayerCount() >= 2) {
             sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST_FAIL, "Room is full"));
             return;
         }
