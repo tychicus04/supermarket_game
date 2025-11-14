@@ -634,7 +634,10 @@ public class ImprovedGameController {
     }
 
     public void handleGameStart() {
-        System.out.println("Game started!");
+        System.out.println("🎮 Multiplayer game started from server!");
+        // The game is already shown via show(false) call from Main
+        // This method is called when server broadcasts GAME_START
+        // Just ensure we're ready to play
     }
 
     public void handleScoreUpdate(Message message) {

@@ -175,7 +175,8 @@ public class Main extends Application {
                     }
                     break;
                 case MESSAGE_TYPE_GAME_START:
-                    gameController.handleGameStart();
+                    // Server has started the game, switch to game screen
+                    Platform.runLater(() -> showGameScreen(false));
                     break;
                 case MESSAGE_TYPE_SCORE_UPDATE:
                     gameController.handleScoreUpdate(message);

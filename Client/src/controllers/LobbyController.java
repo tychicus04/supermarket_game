@@ -480,6 +480,11 @@ public class LobbyController {
      * Update player slots display
      */
     private void updatePlayerSlots() {
+        // Safety check: only update if we're in room view and playerLabels is initialized
+        if (!inRoom || playerLabels == null || playerLabels[0] == null) {
+            return;
+        }
+
         for (int i = 0; i < 4; i++) {
             Label label = playerLabels[i];
             if (i < playersInRoom.size()) {
@@ -601,7 +606,10 @@ public class LobbyController {
                 break;
 
             case "PLAYER_JOINED":
-            case "PLAYER_LEFT":
+                    // Only update if we're in room view (playerLabels is initialized)
+                    if (inRoom && playerLabels != null && playerLabels[0] != null) {
+                        updatePlayerSlots();
+                    }
                 String[] parts = data.split(":");
                 if (parts.length >= 2) {
                     // Update player list (simplified - server should send full list)
