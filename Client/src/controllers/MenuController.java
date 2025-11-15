@@ -33,6 +33,7 @@ public class MenuController {
     private Stage stage;
     private Consumer<Boolean> onStartGame;
     private Runnable onShowLeaderboard;
+    private Runnable onShowMatchHistory;
     private Runnable onShowLobby;
     private Runnable onLogout;
     private SoundManager soundManager;
@@ -44,10 +45,12 @@ public class MenuController {
     private Button startGameButton;
 
     public MenuController(Stage stage, Consumer<Boolean> onStartGame,
-                          Runnable onShowLeaderboard, Runnable onShowLobby, Runnable onLogout) {
+                          Runnable onShowLeaderboard, Runnable onShowMatchHistory,
+                          Runnable onShowLobby, Runnable onLogout) {
         this.stage = stage;
         this.onStartGame = onStartGame;
         this.onShowLeaderboard = onShowLeaderboard;
+        this.onShowMatchHistory = onShowMatchHistory;
         this.onShowLobby = onShowLobby;
         this.soundManager = SoundManager.getInstance();
         this.onLogout = onLogout;
@@ -111,6 +114,16 @@ public class MenuController {
             onShowLeaderboard.run();
         });
 
+        // Match History button - cyan
+        Button matchHistoryBtn = new Button("MATCH HISTORY");
+        matchHistoryBtn.getStyleClass().addAll("pixel-menu-btn", "btn-history");
+        matchHistoryBtn.setOnAction(e -> {
+            soundManager.play("menu_button");
+            if (onShowMatchHistory != null) {
+                onShowMatchHistory.run();
+            }
+        });
+
         // Settings button - blue
         Button settingsBtn = new Button("SETTINGS");
         settingsBtn.getStyleClass().addAll("pixel-menu-btn", "btn-settings");
@@ -129,37 +142,35 @@ public class MenuController {
             }
         });
 
-        menuContainer.getChildren().addAll(welcome, singleBtn, multiBtn, leaderboardBtn, settingsBtn, logoutBtn);
+        menuContainer.getChildren().addAll(welcome, singleBtn, multiBtn, leaderboardBtn, matchHistoryBtn, settingsBtn, logoutBtn);
         root.getChildren().add(menuContainer);
 
-        // Lấy kích thước hiện tại của stage để giữ nguyên kích thước/fullscreen
         double width = stage.getWidth() > 0 ? stage.getWidth() : 1024;
         double height = stage.getHeight() > 0 ? stage.getHeight() : 768;
 
         Scene scene = new Scene(root, width, height);
 
-        // Load CSS
         try {
             java.net.URL cssResource = getClass().getResource("/resources/assets/css/menu-pixel-style.css");
             if (cssResource != null) {
                 scene.getStylesheets().add(cssResource.toExternalForm());
             } else {
                 System.err.println("Menu CSS not found, using fallback");
-                applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, settingsBtn, logoutBtn);
+                applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, matchHistoryBtn, settingsBtn, logoutBtn);
             }
         } catch (Exception e) {
             System.err.println("Failed to load menu CSS: " + e.getMessage());
-            applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, settingsBtn, logoutBtn);
+            applyFallbackMenuStyles(root, singleBtn, multiBtn, leaderboardBtn, matchHistoryBtn, settingsBtn, logoutBtn);
         }
 
         stage.setScene(scene);
 
-        // Apply fade-in animations
         animateButtonFadeIn(singleBtn, 0.0);
         animateButtonFadeIn(multiBtn, 0.1);
         animateButtonFadeIn(leaderboardBtn, 0.2);
-        animateButtonFadeIn(settingsBtn, 0.3);
-        animateButtonFadeIn(logoutBtn, 0.4);
+        animateButtonFadeIn(matchHistoryBtn, 0.3);
+        animateButtonFadeIn(settingsBtn, 0.4);
+        animateButtonFadeIn(logoutBtn, 0.5);
     }
 
     /**
@@ -197,17 +208,12 @@ public class MenuController {
                                          Button singleBtn,
                                          Button multiBtn,
                                          Button leaderboardBtn,
+                                         Button matchHistoryBtn,
                                          Button settingsBtn, Button logoutBtn) {
         // Background
         root.setStyle("-fx-background-image: url('/resources/assets/images/backgrounds/backgroundMenu.png'); " +
                      "-fx-background-size: cover; -fx-background-position: center center; " +
                      "-fx-background-repeat: no-repeat;");
-
-        // Welcome text - lớn, dễ đọc và nổi bật
-        // Sử dụng font hệ thống đậm để đảm bảo hiển thị nếu font pixel không có sẵn
-//        welcome.setStyle("-fx-font-family: 'Arial Black', 'Impact', sans-serif; -fx-font-size: 44px; " +
-//                        "-fx-font-weight: bold; -fx-fill: #FFD700; " +
-//                        "-fx-stroke: #D32F2F; -fx-stroke-width: 3px;");
 
         // Button base style - lớn hơn, chữ màu đen
         String baseStyle = "-fx-min-width: 380px; -fx-pref-width: 400px; -fx-pref-height: 75px; " +
@@ -227,6 +233,9 @@ public class MenuController {
 
         // Leaderboard - golden
         leaderboardBtn.setStyle(baseStyle + "-fx-background-color: #FFB347;");
+
+        // Match History - cyan
+        matchHistoryBtn.setStyle(baseStyle + "-fx-background-color: #5DADE2;");
 
         // Settings - blue
         settingsBtn.setStyle(baseStyle + "-fx-background-color: #4DA6FF;");

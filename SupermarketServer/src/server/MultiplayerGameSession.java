@@ -1,6 +1,9 @@
 package server;
 
+import database.DatabaseManager;
 import models.Message;
+
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import static constants.GameConstants.*;
@@ -8,23 +11,24 @@ import static constants.GameConstants.*;
 /**
  * Phiên bản "tối giản" của GameSession.
  * Chỉ hoạt động như một bộ đếm 60 giây và một trạm trung chuyển điểm.
- * Toàn bộ logic game (tạo order, bấm phím) đều nằm ở Client.
+ * Toàn bộ logic game đều nằm ở Client.
  */
 public class MultiplayerGameSession {
     private final String roomId;
     private final GameRoom room;
-    private final Map<String, Integer> scores; // Lấy từ GameRoom
+    private final Map<String, Integer> scores;
+    private final DatabaseManager database;
     private boolean gameActive = false;
-    private int timeLeft = 60; // Chỉ đếm 60 giây
+    private int timeLeft = 60;
     private static final int GAME_DURATION_SECONDS = 60;
 
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> gameTimerTask;
 
-    public MultiplayerGameSession(String roomId, GameRoom room) {
+    public MultiplayerGameSession(String roomId, GameRoom room, DatabaseManager database) {
         this.roomId = roomId;
         this.room = room;
-        // Sử dụng trực tiếp map 'scores' của GameRoom
+        this.database = database;
         this.scores = room.getScoresMap();
     }
 
@@ -34,18 +38,11 @@ public class MultiplayerGameSession {
     public void startGame() {
         gameActive = true;
         timeLeft = GAME_DURATION_SECONDS;
-
-        // Reset điểm trong GameRoom về 0
         room.resetScores();
-
-        // Gửi tin nhắn GAME_START cho client
         room.broadcast(new Message(MESSAGE_TYPE_GAME_START, roomId));
-
-        // Bắt đầu timer 60 giây
         scheduler = Executors.newScheduledThreadPool(1);
         startGameTimer();
-
-        System.out.println("🎮 Game (Minimal Logic) started in room " + roomId);
+        System.out.println("Game (Minimal Logic) started in room " + roomId);
     }
 
     /**
@@ -54,13 +51,9 @@ public class MultiplayerGameSession {
     private void startGameTimer() {
         gameTimerTask = scheduler.scheduleAtFixedRate(() -> {
             timeLeft--;
-
-            // Cứ 5 giây lại broadcast 1 lần để đồng bộ
             if (timeLeft % 5 == 0) {
                 broadcastGameState();
             }
-
-            // Hết giờ
             if (timeLeft <= 0) {
                 endGame(null ,null);
             }
@@ -68,17 +61,14 @@ public class MultiplayerGameSession {
     }
 
     /**
-     * (MỚI) Xử lý khi nhận được điểm từ Client (Client gửi GAME_SCORE)
+     * Xử lý khi nhận được điểm từ Client
      */
     public synchronized void handlePlayerScoreUpdate(String username, String scoreData) {
         if (!gameActive) return;
 
         try {
             int newScore = Integer.parseInt(scoreData);
-            // Cập nhật điểm trực tiếp vào map của GameRoom
             scores.put(username, newScore);
-
-            // Gửi ngay lập tức trạng thái mới cho mọi người
             broadcastGameState();
         } catch (NumberFormatException e) {
             System.err.println("Invalid score data from " + username + ": " + scoreData);
@@ -86,25 +76,19 @@ public class MultiplayerGameSession {
     }
 
     /**
-     * (SỬA LẠI) Phát sóng trạng thái game
+     * Phát sóng trạng thái game
      * Định dạng phải khớp với Client `handleGameState`:
      * "[items]|[timeout]|[username1]:[score1]|[username2]:[score2]"
      */
     private void broadcastGameState() {
         StringBuilder data = new StringBuilder();
-
-        // Client `handleGameState` của bạn cần 2 phần tử đầu
-        data.append("0|"); // Placeholder cho "remainingItems"
-        data.append(timeLeft + "|"); // Thời gian còn lại của game (từ server)
-
-        // Nối điểm của từng người chơi
+        data.append("0|");
+        data.append(timeLeft).append("|");
         for (Map.Entry<String, Integer> entry : scores.entrySet()) {
-            // Đảm bảo chỉ gửi điểm của những người còn trong phòng
             if (room.getPlayers().contains(entry.getKey())) {
                 data.append(entry.getKey()).append(":").append(entry.getValue()).append("|");
             }
         }
-
         room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_STATE, data.toString()));
     }
 
@@ -112,38 +96,26 @@ public class MultiplayerGameSession {
      * Kết thúc game
      */
     private void endGame(String reason, String leavingPlayer) {
-        if (!gameActive) return; // Đảm bảo chỉ chạy 1 lần
+        if (!gameActive) return;
         gameActive = false;
-
-        // Dừng timer
         if (gameTimerTask != null) gameTimerTask.cancel(false);
         if (scheduler != null) scheduler.shutdown();
-
+        saveScoresToDatabase();
         String payload;
         if (reason != null) {
-            // Nếu có lý do (VD: "OPPONENT_LEFT"), gửi lý do đó
             payload = reason;
         } else {
-            // Nếu không (hết giờ bình thường), gửi bảng xếp hạng
             payload = room.getFinalRankings();
         }
 
-//        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload));
         Message gameOverMsg = new Message(MESSAGE_TYPE_S2C_GAME_OVER, payload);
 
         if (leavingPlayer != null) {
-            // Chỉ gửi cho người còn lại, KHÔNG gửi cho người vừa thoát
             room.broadcastToOthers(gameOverMsg, leavingPlayer);
         } else {
-            // Hết giờ bình thường, gửi cho tất cả mọi người
             room.broadcast(gameOverMsg);
         }
-        // Broadcast game over
-        // Client sẽ nhận S2C_GAME_OVER, gọi handleGameOver(),
-        // sau đó gọi showGameOverScreen() (tự so sánh điểm và hiển thị Thắng/Thua)
-//        room.broadcast(new Message(MESSAGE_TYPE_S2C_GAME_OVER, room.getFinalRankings()));
-
-        System.out.println("🏁 Game ended in room " + roomId);
+        System.out.println("Game ended in room " + roomId);
         GameServer.removeGameSession(roomId);
     }
 
@@ -157,5 +129,35 @@ public class MultiplayerGameSession {
 
     public boolean isActive() {
         return gameActive;
+    }
+
+    /**
+     * Lưu điểm của tất cả người chơi vào database
+     */
+    private void saveScoresToDatabase() {
+        for (Map.Entry<String, Integer> entry : scores.entrySet()) {
+            String username = entry.getKey();
+            int score = entry.getValue();
+
+            if (database.saveScore(username, score)) {
+                System.out.println("Saved score for " + username + ": " + score);
+            } else {
+                System.err.println("Failed to save score for " + username);
+            }
+        }
+
+        List<String> players = room.getPlayers();
+        if (players.size() == 2) {
+            String player1 = players.get(0);
+            String player2 = players.get(1);
+            int player1Score = scores.getOrDefault(player1, 0);
+            int player2Score = scores.getOrDefault(player2, 0);
+
+            if (database.saveMatchHistory(roomId, player1, player2, player1Score, player2Score)) {
+                System.out.println("Saved match history: " + player1 + " vs " + player2);
+            } else {
+                System.err.println("Failed to save match history");
+            }
+        }
     }
 }

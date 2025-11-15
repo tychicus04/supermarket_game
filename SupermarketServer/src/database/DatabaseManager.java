@@ -40,15 +40,15 @@ public class DatabaseManager {
      * Create database tables if not exist
      */
     private void createTables() throws SQLException {
-        String createUsersTable = 
+        String createUsersTable =
             "CREATE TABLE IF NOT EXISTS users (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT," +
             "username TEXT UNIQUE NOT NULL," +
             "password TEXT NOT NULL," +
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
             ")";
-        
-        String createScoresTable = 
+
+        String createScoresTable =
             "CREATE TABLE IF NOT EXISTS scores (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT," +
             "username TEXT NOT NULL," +
@@ -56,7 +56,7 @@ public class DatabaseManager {
             "played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
             "FOREIGN KEY (username) REFERENCES users(username)" +
             ")";
-        
+
         String createFriendRequestsTable =
             "CREATE TABLE IF NOT EXISTS friend_requests (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -80,28 +80,52 @@ public class DatabaseManager {
             "UNIQUE(user1, user2)" +
             ")";
 
+        String createMatchHistoryTable =
+                "CREATE TABLE IF NOT EXISTS match_history (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "room_id TEXT NOT NULL," +
+                        "player1 TEXT NOT NULL," +
+                        "player2 TEXT NOT NULL," +
+                        "player1_score INTEGER NOT NULL," +
+                        "player2_score INTEGER NOT NULL," +
+                        "winner TEXT," +
+                        "match_result TEXT NOT NULL," +
+                        "played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                        "FOREIGN KEY (player1) REFERENCES users(username)," +
+                        "FOREIGN KEY (player2) REFERENCES users(username)" +
+                        ")";
+
         String createIndexScore =
             "CREATE INDEX IF NOT EXISTS idx_scores_username ON scores(username)";
-        
-        String createIndexHighScore = 
+
+        String createIndexHighScore =
             "CREATE INDEX IF NOT EXISTS idx_scores_high ON scores(score DESC)";
-        
+
         String createIndexFriends1 =
             "CREATE INDEX IF NOT EXISTS idx_friends_user1 ON friends(user1)";
 
         String createIndexFriends2 =
             "CREATE INDEX IF NOT EXISTS idx_friends_user2 ON friends(user2)";
 
+        String createIndexMatchPlayer1 =
+                "CREATE INDEX IF NOT EXISTS idx_match_player1 ON match_history(player1)";
+
+        String createIndexMatchPlayer2 =
+                "CREATE INDEX IF NOT EXISTS idx_match_player2 ON match_history(player2)";
+
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createUsersTable);
             stmt.execute(createScoresTable);
             stmt.execute(createFriendRequestsTable);
             stmt.execute(createFriendsTable);
+            stmt.execute(createMatchHistoryTable);
             stmt.execute(createIndexScore);
             stmt.execute(createIndexHighScore);
             stmt.execute(createIndexFriends1);
             stmt.execute(createIndexFriends2);
-            System.out.println("✅ Database tables ready");
+            stmt.execute(createIndexMatchPlayer1);
+            stmt.execute(createIndexMatchPlayer2);
+            System.out.println("Database tables ready");
         }
     }
     
@@ -121,7 +145,7 @@ public class DatabaseManager {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("❌ Login error: " + e.getMessage());
+            System.err.println("Login error: " + e.getMessage());
         }
         
         return false;
@@ -141,9 +165,9 @@ public class DatabaseManager {
             
         } catch (SQLException e) {
             if (e.getMessage().contains("UNIQUE constraint failed")) {
-                return false; // Username exists
+                return false;
             }
-            System.err.println("❌ Registration error: " + e.getMessage());
+            System.err.println("Registration error: " + e.getMessage());
             return false;
         }
     }
@@ -161,7 +185,7 @@ public class DatabaseManager {
             return true;
             
         } catch (SQLException e) {
-            System.err.println("❌ Save score error: " + e.getMessage());
+            System.err.println("Save score error: " + e.getMessage());
             return false;
         }
     }
@@ -552,5 +576,141 @@ public class DatabaseManager {
         }
         
         return 0;
+    }
+
+    /**
+     * Save match history to database
+     */
+    public boolean saveMatchHistory(String roomId, String player1, String player2,
+                                    int player1Score, int player2Score) {
+        String winner = null;
+        String matchResult;
+
+        if (player1Score > player2Score) {
+            winner = player1;
+            matchResult = "WIN";
+        } else if (player1Score < player2Score) {
+            winner = player2;
+            matchResult = "LOSE";
+        } else {
+            matchResult = "DRAW";
+        }
+
+        String query = "INSERT INTO match_history (room_id, player1, player2, player1_score, player2_score, winner, match_result) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, roomId);
+            pstmt.setString(2, player1);
+            pstmt.setString(3, player2);
+            pstmt.setInt(4, player1Score);
+            pstmt.setInt(5, player2Score);
+            pstmt.setString(6, winner);
+            pstmt.setString(7, matchResult);
+            pstmt.executeUpdate();
+            return true;
+
+        } catch (SQLException e) {
+            System.err.println("Save match history error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get match history for a specific user
+     */
+    public String getMatchHistory(String username, int limit) {
+        String query =
+                "SELECT room_id, player1, player2, player1_score, player2_score, winner, match_result, played_at " +
+                        "FROM match_history " +
+                        "WHERE player1 = ? OR player2 = ? " +
+                        "ORDER BY played_at DESC " +
+                        "LIMIT ?";
+
+        StringBuilder sb = new StringBuilder();
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, username);
+            pstmt.setInt(3, limit);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    String roomId = rs.getString("room_id");
+                    String player1 = rs.getString("player1");
+                    String player2 = rs.getString("player2");
+                    int player1Score = rs.getInt("player1_score");
+                    int player2Score = rs.getInt("player2_score");
+                    String winner = rs.getString("winner");
+                    String matchResult = rs.getString("match_result");
+                    String playedAt = rs.getString("played_at");
+
+                    // Determine opponent and result from user's perspective
+                    String opponent = player1.equals(username) ? player2 : player1;
+                    int myScore = player1.equals(username) ? player1Score : player2Score;
+                    int opponentScore = player1.equals(username) ? player2Score : player1Score;
+
+                    String result;
+                    if (winner == null) {
+                        result = "DRAW";
+                    } else if (winner.equals(username)) {
+                        result = "WIN";
+                    } else {
+                        result = "LOSE";
+                    }
+
+                    // Format: result|opponent|myScore|opponentScore|playedAt
+                    sb.append(result).append("|")
+                            .append(opponent).append("|")
+                            .append(myScore).append("|")
+                            .append(opponentScore).append("|")
+                            .append(playedAt).append("\n");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Get match history error: " + e.getMessage());
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Get match statistics for a user
+     */
+    public Map<String, Integer> getMatchStats(String username) {
+        Map<String, Integer> stats = new HashMap<>();
+        stats.put("wins", 0);
+        stats.put("losses", 0);
+        stats.put("draws", 0);
+        stats.put("total_matches", 0);
+
+        String query =
+                "SELECT " +
+                        "SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) as wins, " +
+                        "SUM(CASE WHEN winner IS NOT NULL AND winner != ? THEN 1 ELSE 0 END) as losses, " +
+                        "SUM(CASE WHEN winner IS NULL THEN 1 ELSE 0 END) as draws, " +
+                        "COUNT(*) as total_matches " +
+                        "FROM match_history " +
+                        "WHERE player1 = ? OR player2 = ?";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, username);
+            pstmt.setString(3, username);
+            pstmt.setString(4, username);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    stats.put("wins", rs.getInt("wins"));
+                    stats.put("losses", rs.getInt("losses"));
+                    stats.put("draws", rs.getInt("draws"));
+                    stats.put("total_matches", rs.getInt("total_matches"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Get match stats error: " + e.getMessage());
+        }
+
+        return stats;
     }
 }

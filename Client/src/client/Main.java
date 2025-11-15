@@ -4,13 +4,13 @@ import controllers.ImprovedGameController;
 import controllers.LeaderboardController;
 import controllers.LobbyController;
 import controllers.LoginController;
+import controllers.MatchHistoryController;
 import controllers.MenuController;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
-import utils.SoundManager;
 
 import java.util.List;
 
@@ -31,30 +31,21 @@ public class Main extends Application {
     private LobbyController lobbyController;
     private ImprovedGameController gameController;
     private LeaderboardController leaderboardController;
+    private MatchHistoryController matchHistoryController;
 
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
-        primaryStage.setTitle("🏪 Supermarket Game");
-        
-        // Initialize assets
+        primaryStage.setTitle("Supermarket Game");
         utils.AssetManager.getInstance();
-        
-        // Initialize network
         networkManager = NetworkManager.getInstance();
         networkManager.setMessageHandler(this::handleServerMessage);
-        
-        // Initialize controllers
         initializeControllers();
-        
-        // Show login screen
         showLoginScreen();
-        
         primaryStage.setOnCloseRequest(e -> {
             networkManager.disconnect();
             Platform.exit();
         });
-        
         primaryStage.show();
     }
     
@@ -63,9 +54,10 @@ public class Main extends Application {
      */
     private void initializeControllers() {
         loginController = new LoginController(primaryStage, this::showMenuScreen);
-        menuController = new MenuController(primaryStage, 
-            this::showGameScreen, 
+        menuController = new MenuController(primaryStage,
+            this::showGameScreen,
             this::showLeaderboard,
+            this::showMatchHistory,
             this::showLobby,
             this::handleLogout);
         lobbyController = new LobbyController(primaryStage,
@@ -86,6 +78,7 @@ public class Main extends Application {
                 },
                 networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
+        matchHistoryController = new MatchHistoryController(primaryStage, this::showMenuScreen);
     }
     
     /**
@@ -113,38 +106,25 @@ public class Main extends Application {
                 case MESSAGE_TYPE_REGISTER_FAIL:
                     loginController.handleRegisterFail(message);
                     break;
-//                case MESSAGE_TYPE_ROOM_CREATED:
-//                case MESSAGE_TYPE_ROOM_JOINED:
-//                case MESSAGE_TYPE_PLAYER_JOINED:
-//                case MESSAGE_TYPE_PLAYER_LEFT:
-//                    menuController.handleRoomUpdate(message);
-//                    if (lobbyController != null) {
-//                        lobbyController.handleRoomUpdate(message);
-//                    }
-//                    break;
                 case MESSAGE_TYPE_ROOM_CREATED:
-                    String createdRoomData = message.getData().toString(); // "ROOM123:1"
+                    String createdRoomData = message.getData();
                     String[] createdParts = createdRoomData.split(":");
                     this.currentRoomId = createdParts[0];
                     List<String> creatorList = new java.util.ArrayList<>();
                     creatorList.add(currentUsername);
-
-                    // Vẽ lại LobbyController ở chế độ "Phòng đợi"
                     lobbyController.show(currentUsername, this.currentRoomId, creatorList);
                     break;
 
                 case MESSAGE_TYPE_ROOM_JOINED:
-                    String joinedRoomData = message.getData().toString(); // "ROOM123:2"
+                    String joinedRoomData = message.getData().toString();
                     String[] joinedParts = joinedRoomData.split(":");
                     this.currentRoomId = joinedParts[0];
-
-                    // GỌI HÀM SHOW ĐỂ VẼ LẠI GIAO DIỆN PHÒNG
-                    // (Danh sách người chơi sẽ được cập nhật bằng các tin nhắn PLAYER_JOINED)
                     lobbyController.show(currentUsername, this.currentRoomId, new java.util.ArrayList<>());
                     break;
 
                 case MESSAGE_TYPE_PLAYER_JOINED:
                 case MESSAGE_TYPE_PLAYER_LEFT:
+                case MESSAGE_TYPE_S2C_ROOM_UPDATE:
                     menuController.handleRoomUpdate(message);
                     if (lobbyController != null) {
                         lobbyController.handleRoomUpdate(message);
@@ -206,10 +186,8 @@ public class Main extends Application {
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_SENT:
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_FAIL:
                 case MESSAGE_TYPE_S2C_INVITE_SENT:
-                    // Show notification
                     break;
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_RECEIVED:
-                    // Refresh friend requests list in real-time
                     if (lobbyController != null) {
                         networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
                     }
@@ -226,6 +204,11 @@ public class Main extends Application {
                     if (lobbyController != null) {
                         lobbyController.handleRoomInvite(message);
                     }
+                    break;
+                case MESSAGE_TYPE_S2C_KICKED_FROM_ROOM:
+                    this.currentRoomId = null;
+                    utils.UIHelper.showError("Removed from Room", message.getData());
+                    showLobby();
                     break;
                 case MESSAGE_TYPE_LOGOUT_SUCCESS:
                     handleLogoutSuccess(message);
@@ -249,6 +232,12 @@ public class Main extends Application {
                 case MESSAGE_TYPE_LEADERBOARD:
                     leaderboardController.handleLeaderboard(message);
                     break;
+                case MESSAGE_TYPE_S2C_MATCH_HISTORY:
+                    matchHistoryController.handleMatchHistory(message);
+                    break;
+                case MESSAGE_TYPE_S2C_MATCH_STATS:
+                    matchHistoryController.handleMatchStats(message);
+                    break;
                 case MESSAGE_TYPE_ERROR:
                     handleError(message);
                     break;
@@ -262,29 +251,17 @@ public class Main extends Application {
     }
     
     private void handleLogout() {
-        // Stop any playing music
         utils.SoundManager.getInstance().stopMusic();
-
-        // Send logout message to server
         networkManager.sendMessage(new models.Message(MESSAGE_TYPE_LOGOUT, ""));
-
-        // Clear current username
         currentUsername = null;
-
-        // Show confirmation
         utils.UIHelper.showInfo("Logged Out", "You have been logged out successfully.");
-
-        // Go back to login screen
         showLoginScreen();
     }
 
     private void handleLogoutSuccess(Message message) {
-        // Logout confirmed by server
-        System.out.println("📡 " + message.getData());
+        System.out.println(message.getData());
     }
 
-    // Screen navigation
-    
     private void showLoginScreen() {
         loginController.show();
     }
@@ -300,9 +277,14 @@ public class Main extends Application {
     private void showLeaderboard() {
         leaderboardController.show();
     }
+
+    private void showMatchHistory() {
+        matchHistoryController.show();
+        networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_MATCH_HISTORY, ""));
+        networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_MATCH_STATS, ""));
+    }
     
     private void showLobby() {
-        // Show lobby in browse mode (not in a room)
         String username = currentUsername != null ? currentUsername : "Player";
         lobbyController.show(username, null, new java.util.ArrayList<>());
     }
