@@ -182,7 +182,7 @@ public class GameServer {
             return null; // Phòng không tồn tại hoặc game đã bắt đầu
         }
 
-        MultiplayerGameSession session = new MultiplayerGameSession(roomId, room);
+        MultiplayerGameSession session = new MultiplayerGameSession(roomId, room, database);
         gameSessions.put(roomId, session);
         session.startGame(); // <--- Dòng này sẽ bắt đầu timer và gửi GAME_START
         return session;

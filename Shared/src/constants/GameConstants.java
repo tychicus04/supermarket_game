@@ -26,6 +26,8 @@ public class GameConstants {
     public static final String MESSAGE_TYPE_GET_FRIEND_REQUESTS = "C2S_GET_FRIEND_REQUESTS";
     public static final String MESSAGE_TYPE_REMOVE_FRIEND = "C2S_REMOVE_FRIEND";
     public static final String MESSAGE_TYPE_INVITE_TO_ROOM = "C2S_INVITE_TO_ROOM";
+    public static final String MESSAGE_TYPE_GET_MATCH_HISTORY = "C2S_GET_MATCH_HISTORY";
+    public static final String MESSAGE_TYPE_GET_MATCH_STATS = "C2S_GET_MATCH_STATS";
     public static final String MESSAGE_TYPE_PING = "PING";
     public static final String MESSAGE_TYPE_PONG = "PONG";
 
@@ -66,4 +68,8 @@ public class GameConstants {
     // Multiplayer game sync messages
     public static final String MESSAGE_TYPE_S2C_GAME_STATE = "S2C_GAME_STATE"; // Sync game state
     public static final String MESSAGE_TYPE_S2C_GAME_OVER = "S2C_GAME_OVER"; // Game kết thúc
+
+    // Match history messages
+    public static final String MESSAGE_TYPE_S2C_MATCH_HISTORY = "S2C_MATCH_HISTORY";
+    public static final String MESSAGE_TYPE_S2C_MATCH_STATS = "S2C_MATCH_STATS";
 }

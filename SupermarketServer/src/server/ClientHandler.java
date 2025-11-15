@@ -124,6 +124,12 @@ public class ClientHandler implements Runnable {
                 case MESSAGE_TYPE_INVITE_TO_ROOM:
                     handleInviteToRoom(msg);
                     break;
+                case MESSAGE_TYPE_GET_MATCH_HISTORY:
+                    handleGetMatchHistory();
+                    break;
+                case MESSAGE_TYPE_GET_MATCH_STATS:
+                    handleGetMatchStats();
+                    break;
                 case MESSAGE_TYPE_LOGOUT:
                     handleLogout();
                     break;
@@ -338,7 +344,37 @@ public class ClientHandler implements Runnable {
         String leaderboard = database.getLeaderboard(10);
         sendMessage(new Message(MESSAGE_TYPE_LEADERBOARD, leaderboard));
     }
-    
+
+    /**
+     * Handle get match history request
+     */
+    private void handleGetMatchHistory() {
+        if (username == null) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
+            return;
+        }
+
+        String matchHistory = database.getMatchHistory(username, 20);
+        sendMessage(new Message(MESSAGE_TYPE_S2C_MATCH_HISTORY, matchHistory));
+    }
+
+    /**
+     * Handle get match stats request
+     */
+    private void handleGetMatchStats() {
+        if (username == null) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
+            return;
+        }
+
+        java.util.Map<String, Integer> stats = database.getMatchStats(username);
+        String statsData = stats.get("wins") + "|" +
+                          stats.get("losses") + "|" +
+                          stats.get("draws") + "|" +
+                          stats.get("total_matches");
+        sendMessage(new Message(MESSAGE_TYPE_S2C_MATCH_STATS, statsData));
+    }
+
     /**
      * Handle get room list request
      */

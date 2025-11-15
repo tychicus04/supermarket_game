@@ -4,6 +4,7 @@ import controllers.ImprovedGameController;
 import controllers.LeaderboardController;
 import controllers.LobbyController;
 import controllers.LoginController;
+import controllers.MatchHistoryController;
 import controllers.MenuController;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -30,6 +31,7 @@ public class Main extends Application {
     private LobbyController lobbyController;
     private ImprovedGameController gameController;
     private LeaderboardController leaderboardController;
+    private MatchHistoryController matchHistoryController;
 
     @Override
     public void start(Stage stage) {
@@ -62,9 +64,10 @@ public class Main extends Application {
      */
     private void initializeControllers() {
         loginController = new LoginController(primaryStage, this::showMenuScreen);
-        menuController = new MenuController(primaryStage, 
-            this::showGameScreen, 
+        menuController = new MenuController(primaryStage,
+            this::showGameScreen,
             this::showLeaderboard,
+            this::showMatchHistory,
             this::showLobby,
             this::handleLogout);
         lobbyController = new LobbyController(primaryStage,
@@ -76,6 +79,7 @@ public class Main extends Application {
                 lobbyController::showCurrentRoom,
                 networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
+        matchHistoryController = new MatchHistoryController(primaryStage, this::showMenuScreen);
     }
     
     /**
@@ -227,6 +231,12 @@ public class Main extends Application {
                 case MESSAGE_TYPE_LEADERBOARD:
                     leaderboardController.handleLeaderboard(message);
                     break;
+                case MESSAGE_TYPE_S2C_MATCH_HISTORY:
+                    matchHistoryController.handleMatchHistory(message);
+                    break;
+                case MESSAGE_TYPE_S2C_MATCH_STATS:
+                    matchHistoryController.handleMatchStats(message);
+                    break;
                 case MESSAGE_TYPE_ERROR:
                     handleError(message);
                     break;
@@ -278,7 +288,14 @@ public class Main extends Application {
     private void showLeaderboard() {
         leaderboardController.show();
     }
-    
+
+    private void showMatchHistory() {
+        matchHistoryController.show();
+        // Request match history and stats from server
+        networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_MATCH_HISTORY, ""));
+        networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_MATCH_STATS, ""));
+    }
+
     private void showLobby() {
         // Show lobby in browse mode (not in a room)
         String username = currentUsername != null ? currentUsername : "Player";

@@ -1,6 +1,8 @@
 package server;
 
+import database.DatabaseManager;
 import models.Message;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import static constants.GameConstants.*;
@@ -14,6 +16,7 @@ public class MultiplayerGameSession {
     private final String roomId;
     private final GameRoom room;
     private final Map<String, Integer> scores; // Lấy từ GameRoom
+    private final DatabaseManager database;
     private boolean gameActive = false;
     private int timeLeft = 60; // Chỉ đếm 60 giây
     private static final int GAME_DURATION_SECONDS = 60;
@@ -21,9 +24,10 @@ public class MultiplayerGameSession {
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> gameTimerTask;
 
-    public MultiplayerGameSession(String roomId, GameRoom room) {
+    public MultiplayerGameSession(String roomId, GameRoom room, DatabaseManager database) {
         this.roomId = roomId;
         this.room = room;
+        this.database = database;
         // Sử dụng trực tiếp map 'scores' của GameRoom
         this.scores = room.getScoresMap();
     }
@@ -119,6 +123,9 @@ public class MultiplayerGameSession {
         if (gameTimerTask != null) gameTimerTask.cancel(false);
         if (scheduler != null) scheduler.shutdown();
 
+        // ✅ LƯU ĐIỂM VÀO DATABASE
+        saveScoresToDatabase();
+
         String payload;
         if (reason != null) {
             // Nếu có lý do (VD: "OPPONENT_LEFT"), gửi lý do đó
@@ -145,6 +152,38 @@ public class MultiplayerGameSession {
 
         System.out.println("🏁 Game ended in room " + roomId);
         GameServer.removeGameSession(roomId);
+    }
+
+    /**
+     * Lưu điểm của tất cả người chơi vào database
+     */
+    private void saveScoresToDatabase() {
+        // Lưu điểm cá nhân
+        for (Map.Entry<String, Integer> entry : scores.entrySet()) {
+            String username = entry.getKey();
+            int score = entry.getValue();
+
+            if (database.saveScore(username, score)) {
+                System.out.println("💾 Saved score for " + username + ": " + score);
+            } else {
+                System.err.println("❌ Failed to save score for " + username);
+            }
+        }
+
+        // Lưu lịch sử đấu (chỉ cho trận 1v1)
+        List<String> players = room.getPlayers();
+        if (players.size() == 2) {
+            String player1 = players.get(0);
+            String player2 = players.get(1);
+            int player1Score = scores.getOrDefault(player1, 0);
+            int player2Score = scores.getOrDefault(player2, 0);
+
+            if (database.saveMatchHistory(roomId, player1, player2, player1Score, player2Score)) {
+                System.out.println("📜 Saved match history: " + player1 + " vs " + player2);
+            } else {
+                System.err.println("❌ Failed to save match history");
+            }
+        }
     }
 
     public void stopGame() {
