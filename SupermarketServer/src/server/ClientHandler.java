@@ -124,6 +124,15 @@ public class ClientHandler implements Runnable {
                 case MESSAGE_TYPE_INVITE_TO_ROOM:
                     handleInviteToRoom(msg);
                     break;
+                case MESSAGE_TYPE_KICK_PLAYER:
+                    handleKickPlayer(msg);
+                    break;
+                case MESSAGE_TYPE_GET_MATCH_HISTORY:
+                    handleGetMatchHistory();
+                    break;
+                case MESSAGE_TYPE_GET_MATCH_STATS:
+                    handleGetMatchStats();
+                    break;
                 case MESSAGE_TYPE_LOGOUT:
                     handleLogout();
                     break;
@@ -192,10 +201,10 @@ public class ClientHandler implements Runnable {
         
         if (database.registerUser(user, pass)) {
             sendMessage(new Message(MESSAGE_TYPE_REGISTER_SUCCESS, "Account created! Please login."));
-            System.out.println("✅ New user registered: " + user);
+            System.out.println("New user registered: " + user);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, "Username already exists"));
-            System.out.println("❌ Registration failed (duplicate): " + user);
+            System.out.println("Registration failed (duplicate): " + user);
         }
     }
     
@@ -209,11 +218,10 @@ public class ClientHandler implements Runnable {
         GameRoom room = GameServer.createRoom(roomId, username);
         room.addPlayer(username);
         this.currentRoomId = roomId;
-
         sendMessage(new Message(MESSAGE_TYPE_ROOM_CREATED, roomId + ":" + room.getPlayerCount()));
-
+        room.broadcastRoomUpdate();
         GameServer.broadcastRoomListUpdate();
-        System.out.println("📢 Broadcasted room list update (room created)");
+        System.out.println("Broadcasted room list update (room created)");
     }
     
     private void handleJoinRoom(Message msg) {
@@ -237,12 +245,8 @@ public class ClientHandler implements Runnable {
 
             sendMessage(new Message(MESSAGE_TYPE_ROOM_JOINED, roomId + ":" + room.getPlayerCount()));
 
-            GameServer.broadcastToRoom(roomId,
-                    new Message(MESSAGE_TYPE_PLAYER_JOINED, username + ":" + room.getPlayerCount()));
-
-            for (String existingPlayer : playersAlreadyInRoom) {
-                sendMessage(new Message(MESSAGE_TYPE_PLAYER_JOINED, existingPlayer + ":" + room.getPlayerCount()));
-            }
+            // Broadcast room update to all players in room (including new player)
+            room.broadcastRoomUpdate();
 
             System.out.println("👥 " + username + " joined room " + roomId +
                              " (" + room.getPlayerCount() + "/4)");
@@ -292,7 +296,7 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleStartGame(Message msg) {
-        String roomId = (String) msg.getData();
+        String roomId = msg.getData();
         GameRoom room = GameServer.getRoom(roomId);
 
         if (room == null) {
@@ -335,7 +339,37 @@ public class ClientHandler implements Runnable {
         String leaderboard = database.getLeaderboard(10);
         sendMessage(new Message(MESSAGE_TYPE_LEADERBOARD, leaderboard));
     }
-    
+
+    /**
+     * Handle get match history request
+     */
+    private void handleGetMatchHistory() {
+        if (username == null) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
+            return;
+        }
+
+        String matchHistory = database.getMatchHistory(username, 20);
+        sendMessage(new Message(MESSAGE_TYPE_S2C_MATCH_HISTORY, matchHistory));
+    }
+
+    /**
+     * Handle get match stats request
+     */
+    private void handleGetMatchStats() {
+        if (username == null) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
+            return;
+        }
+
+        java.util.Map<String, Integer> stats = database.getMatchStats(username);
+        String statsData = stats.get("wins") + "|" +
+                stats.get("losses") + "|" +
+                stats.get("draws") + "|" +
+                stats.get("total_matches");
+        sendMessage(new Message(MESSAGE_TYPE_S2C_MATCH_STATS, statsData));
+    }
+
     /**
      * Handle get room list request
      */
@@ -375,7 +409,7 @@ public class ClientHandler implements Runnable {
                 username + ";" + roomId));
             sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST_SENT,
                 "Join request sent to " + creator));
-            System.out.println("📩 " + username + " requested to join room " + roomId);
+            System.out.println(username + " requested to join room " + roomId);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REQUEST_FAIL, "Room creator offline"));
         }
@@ -403,7 +437,7 @@ public class ClientHandler implements Runnable {
         ClientHandler requesterHandler = GameServer.getClient(requestingPlayer);
         if (requesterHandler != null) {
             requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_APPROVED, roomId));
-            System.out.println("✅ " + username + " accepted " + requestingPlayer + "'s join request");
+            System.out.println(username + " accepted " + requestingPlayer + "'s join request");
         }
     }
 
@@ -430,11 +464,9 @@ public class ClientHandler implements Runnable {
         if (requesterHandler != null) {
             requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_JOIN_REJECTED,
                 "Join request rejected by " + username));
-            System.out.println("❌ " + username + " rejected " + requestingPlayer + "'s join request");
+            System.out.println(username + " rejected " + requestingPlayer + "'s join request");
         }
     }
-
-    // ==================== FRIEND MANAGEMENT ====================
 
     /**
      * Handle search users
@@ -490,7 +522,7 @@ public class ClientHandler implements Runnable {
                 targetHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUEST_RECEIVED, username));
             }
 
-            System.out.println("👥 " + username + " sent friend request to " + toUser);
+            System.out.println(username + " sent friend request to " + toUser);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUEST_FAIL,
                 "Request already exists or you are already friends"));
@@ -523,7 +555,7 @@ public class ClientHandler implements Runnable {
                 requesterHandler.sendFriendList();
             }
 
-            System.out.println("👥 " + username + " accepted friend request from " + fromUser);
+            System.out.println(username + " accepted friend request from " + fromUser);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to accept friend request"));
         }
@@ -537,7 +569,7 @@ public class ClientHandler implements Runnable {
             sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
             return;
         }
-        String fromUser = ((String) msg.getData()).trim();
+        String fromUser = (msg.getData()).trim();
 
         if (database.rejectFriendRequest(fromUser, username)) {
             sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REJECTED, fromUser));
@@ -548,8 +580,6 @@ public class ClientHandler implements Runnable {
                 requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REJECTED,
                     username + " rejected your friend request"));
             }
-
-            System.out.println("👥 " + username + " rejected friend request from " + fromUser);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to reject friend request"));
         }
@@ -648,19 +678,17 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        String[] parts = ((String) msg.getData()).split(";");
+        String[] parts = (msg.getData()).split(";");
         if (parts.length != 2) return;
 
         String friendUsername = parts[0];
         String roomId = parts[1];
 
-        // Check if they are friends
         if (!database.areFriends(username, friendUsername)) {
             sendMessage(new Message(MESSAGE_TYPE_ERROR, "Can only invite friends"));
             return;
         }
 
-        // Send invite to friend if online
         ClientHandler friendHandler = GameServer.getClient(friendUsername);
         if (friendHandler != null) {
             friendHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_ROOM_INVITE, username + ";" + roomId));
@@ -668,6 +696,49 @@ public class ClientHandler implements Runnable {
             System.out.println("📧 " + username + " invited " + friendUsername + " to room " + roomId);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_ERROR, "Friend is offline"));
+        }
+    }
+
+    /**
+     * Handle kick player from room
+     */
+    private void handleKickPlayer(Message msg) {
+        if (username == null) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Not logged in"));
+            return;
+        }
+
+        String[] parts = (msg.getData()).split(";");
+        if (parts.length != 2) return;
+
+        String playerToKick = parts[0];
+        String roomId = parts[1];
+
+        GameRoom room = GameServer.getRoom(roomId);
+        if (room == null) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Room not found"));
+            return;
+        }
+
+        if (!room.getCreator().equals(username)) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Only room creator can remove players"));
+            return;
+        }
+
+        if (playerToKick.equals(username)) {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Cannot remove yourself"));
+            return;
+        }
+
+        if (room.removePlayer(playerToKick)) {
+            ClientHandler kickedHandler = GameServer.getClient(playerToKick);
+            if (kickedHandler != null) {
+                kickedHandler.setCurrentRoomId(null);
+                kickedHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_KICKED_FROM_ROOM, "You have been removed from the room"));
+            }
+            room.broadcastRoomUpdate();
+        } else {
+            sendMessage(new Message(MESSAGE_TYPE_ERROR, "Player not in room"));
         }
     }
 
@@ -691,7 +762,6 @@ public class ClientHandler implements Runnable {
             sendMessage(new Message(MESSAGE_TYPE_LOGOUT_SUCCESS, "Goodbye!"));
         }
 
-        // Close connection
         running = false;
     }
 
@@ -705,10 +775,24 @@ public class ClientHandler implements Runnable {
                 out.flush();
             }
         } catch (IOException e) {
-            System.err.println("❌ Failed to send message to " + username);
+            System.err.println("Failed to send message to " + username);
         }
     }
-    
+
+    /**
+     * Get username of this client
+     */
+    public String getUsername() {
+        return username;
+    }
+
+    /**
+     * Set current room ID
+     */
+    public void setCurrentRoomId(String roomId) {
+        this.currentRoomId = roomId;
+    }
+
     /**
      * Cleanup on disconnect
      */
@@ -765,9 +849,5 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             // Ignored
         }
-    }
-    
-    public String getUsername() {
-        return username;
     }
 }

@@ -512,21 +512,21 @@ public class ImprovedGameController {
         Color titleColor;
 
         if (gameOverReason != null && gameOverReason.equals("OPPONENT_LEFT")) {
-            titleText = "🏆 OPPONENT LEFT!";
+            titleText = "OPPONENT LEFT!";
             titleColor = Color.web("#f39c12"); // Màu vàng/cam chiến thắng
             soundManager.playGameOver(); // Chơi âm thanh chiến thắng
         }
         else{
             if (myScore > opponentScore) {
-            titleText = "🎉 YOU WIN! 🎉";
+            titleText = "YOU WIN!";
             titleColor = Color.web("#2ecc71"); // Green
             soundManager.playGameOver(); // (Hoặc âm thanh chiến thắng)
         } else if (myScore < opponentScore) {
-            titleText = "😥 YOU LOSE 😥";
+            titleText = "YOU LOSE";
             titleColor = Color.web("#e74c3c"); // Red
             soundManager.playGameOver(); // (Âm thanh thất bại)
         } else {
-            titleText = "🤝 IT'S A DRAW! 🤝";
+            titleText = "IT'S A DRAW!";
             titleColor = Color.web("#f39c12"); // Orange
         }}
 
@@ -570,7 +570,7 @@ public class ImprovedGameController {
                         onBackToRoom.run();
                     }
                 });
-        Button mainMenuBtn = new Button("🏠 Main Menu");
+        Button mainMenuBtn = new Button("Main Menu");
         mainMenuBtn.setFont(Font.font("Arial", 18));
         mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
         mainMenuBtn.setOnMouseEntered(e -> mainMenuBtn.setStyle("-fx-background-color: #5dade2; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));

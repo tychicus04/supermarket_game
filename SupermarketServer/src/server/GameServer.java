@@ -31,13 +31,11 @@ public class GameServer {
         }
         System.out.println("Database initialized successfully");
 
-        // Start server
         try {
             ServerSocket serverSocket = new ServerSocket(PORT);
             System.out.println("Server started on port " + PORT);
             System.out.println("Waiting for connections...\n");
 
-            // Room cleanup thread
             startRoomCleanupThread();
 
             while (true) {
@@ -58,15 +56,13 @@ public class GameServer {
      */
     private static void startRoomCleanupThread() {
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            public void run() {
-                Iterator<Map.Entry<String, GameRoom>> iterator = activeRooms.entrySet().iterator();
-                while (iterator.hasNext()) {
-                    Map.Entry<String, GameRoom> entry = iterator.next();
-                    if (entry.getValue().isEmpty()) {
-                        System.out.println("🧹 Cleaning up empty room: " + entry.getKey());
-                        iterator.remove();
-                    }
+        scheduler.scheduleAtFixedRate(() -> {
+            Iterator<Map.Entry<String, GameRoom>> iterator = activeRooms.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, GameRoom> entry = iterator.next();
+                if (entry.getValue().isEmpty()) {
+                    System.out.println("Cleaning up empty room: " + entry.getKey());
+                    iterator.remove();
                 }
             }
         }, 60, 60, TimeUnit.SECONDS);
@@ -179,12 +175,12 @@ public class GameServer {
     public static MultiplayerGameSession startGameSession(String roomId) {
         GameRoom room = activeRooms.get(roomId);
         if (room == null || gameSessions.containsKey(roomId)) {
-            return null; // Phòng không tồn tại hoặc game đã bắt đầu
+            return null;
         }
 
-        MultiplayerGameSession session = new MultiplayerGameSession(roomId, room);
+        MultiplayerGameSession session = new MultiplayerGameSession(roomId, room, database);
         gameSessions.put(roomId, session);
-        session.startGame(); // <--- Dòng này sẽ bắt đầu timer và gửi GAME_START
+        session.startGame();
         return session;
     }
 

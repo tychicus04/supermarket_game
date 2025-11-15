@@ -109,7 +109,23 @@ public class GameRoom {
             }
         }
     }
-    
+
+    /**
+     * Broadcast room update to all players in room
+     */
+    public void broadcastRoomUpdate() {
+        StringBuilder json = new StringBuilder("{\"creator\":\"").append(creator).append("\",\"players\":[");
+        synchronized (players) {
+            for (int i = 0; i < players.size(); i++) {
+                if (i > 0) json.append(",");
+                json.append("\"").append(players.get(i)).append("\"");
+            }
+        }
+        json.append("]}");
+
+        broadcast(new Message(constants.GameConstants.MESSAGE_TYPE_S2C_ROOM_UPDATE, json.toString()));
+    }
+
     // Getters
     public String getRoomId() {
         return roomId;

@@ -125,7 +125,7 @@ public class SettingsController {
         section.setAlignment(Pos.CENTER_LEFT);
 
         // Label
-        Label label = new Label("🔊 Sound Effects Volume");
+        Label label = new Label("Sound Effects Volume");
         label.setStyle("-fx-font-family: 'Courier New', monospace; " +
                       "-fx-font-size: 18px; " +
                       "-fx-font-weight: bold; " +
