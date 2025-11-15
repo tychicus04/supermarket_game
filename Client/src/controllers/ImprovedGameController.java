@@ -576,6 +576,10 @@ public class ImprovedGameController {
         mainMenuBtn.setOnMouseEntered(e -> mainMenuBtn.setStyle("-fx-background-color: #5dade2; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
         mainMenuBtn.setOnMouseExited(e -> mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
         mainMenuBtn.setOnAction(e -> {
+            if (onSendMessage != null && currentRoomId != null && !isSinglePlayer) {
+                onSendMessage.accept(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
+            }
+
             if (onBackToMenu != null) {
                 onBackToMenu.run();
             }

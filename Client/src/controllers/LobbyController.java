@@ -1228,19 +1228,14 @@ public class LobbyController {
 
     public void showCurrentRoom() {
         if (mainRoot != null && mainRoot.getScene() != null) {
-            // Chỉ cần hiển thị lại Scene cũ
             stage.setScene(mainRoot.getScene());
             stage.show();
 
-            // Cập nhật lại trạng thái nút (vì player list có thể đã thay đổi
-            // nếu người kia thoát)
             updatePlayerSlots();
         } else {
-            // Fallback: Nếu UI bị mất, tạo lại
             if (currentUsername != null && currentRoomId != null) {
                 show(currentUsername, currentRoomId, playersInRoom);
             } else {
-                // Fallback cuối cùng: Về menu
                 if (onBackToMenu != null) onBackToMenu.run();
             }
         }
