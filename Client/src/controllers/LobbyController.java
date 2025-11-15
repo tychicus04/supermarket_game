@@ -457,9 +457,7 @@ public class LobbyController {
         leaveButton.setOnAction(e -> {
             network.sendMessage(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
             // Navigate back to menu
-            if (onBackToMenu != null) {
-                onBackToMenu.run();
-            }
+            show(currentUsername, null, new ArrayList<>());
         });
 
         startGameButton = UIHelper.createButton("🎮 START GAME", UIHelper.PRIMARY_COLOR);
@@ -492,7 +490,7 @@ public class LobbyController {
                     label.setStyle("-fx-font-weight: bold; -fx-text-fill: #f39c12;");
                 }
             } else {
-                label.setText("--- Empty ---");
+                label.setText(" ");
                 label.setTextFill(Color.web("#95a5a6"));
                 label.setStyle("");
             }
