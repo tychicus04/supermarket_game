@@ -14,7 +14,6 @@ import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
 import utils.SoundManager;
-import utils.UIHelper;
 import javafx.animation.FadeTransition;
 import javafx.util.Duration;
 
@@ -273,7 +272,6 @@ public class LoginController {
     
     public void handleRegisterSuccess(Message message) {
         statusLabel.setText(message.getData());
-        UIHelper.showInfo("Success", message.getData());
     }
     
     public void handleRegisterFail(Message message) {

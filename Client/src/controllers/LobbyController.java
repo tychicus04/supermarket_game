@@ -1,6 +1,9 @@
 package controllers;
 
 import javafx.application.Platform;
+import javafx.animation.Timeline;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -11,6 +14,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import models.Message;
 import network.NetworkManager;
 import utils.UIHelper;
@@ -36,6 +40,9 @@ public class LobbyController {
     private List<Map<String, String>> friendsList;
     private List<Map<String, String>> availableRooms;
 
+    private Timeline friendsRefreshTimer;
+    private Timeline roomsRefreshTimer;
+
     // UI Components
     private Label roomIdLabel;
     private VBox playerSlotsBox;
@@ -44,7 +51,7 @@ public class LobbyController {
     private VBox searchResultsBox;
     private VBox friendRequestsBox;
     private Button startGameButton;
-    private Label[] playerLabels; // P1, P2, P3, P4
+    private Label[] playerLabels;
 
     private BorderPane mainRoot;
     private boolean inRoom = false;
@@ -76,6 +83,49 @@ public class LobbyController {
         network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
         if (!inRoom) {
             network.sendMessage(new Message(MESSAGE_TYPE_GET_ROOM_LIST, ""));
+        }
+
+        // Start auto-refresh timers
+        startAutoRefreshFriendsAndRooms();
+    }
+
+    /**
+     * Start auto-refresh timers for friends and rooms
+     */
+    private void startAutoRefreshFriendsAndRooms() {
+        // Stop existing timers if any
+        stopAutoRefresh();
+
+        // Refresh friends list every 5 seconds
+        friendsRefreshTimer = new Timeline(new KeyFrame(Duration.seconds(5), e -> {
+            network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIENDS, ""));
+        }));
+        friendsRefreshTimer.setCycleCount(Animation.INDEFINITE);
+        friendsRefreshTimer.play();
+
+        // Refresh room list every 3 seconds (only when not in a room)
+        if (!inRoom) {
+            roomsRefreshTimer = new Timeline(new KeyFrame(Duration.seconds(3), e -> {
+                network.sendMessage(new Message(MESSAGE_TYPE_GET_ROOM_LIST, ""));
+            }));
+            roomsRefreshTimer.setCycleCount(Animation.INDEFINITE);
+            roomsRefreshTimer.play();
+        }
+
+        System.out.println("🔄 Auto-refresh timers started");
+    }
+
+    /**
+     * Stop auto-refresh timers
+     */
+    private void stopAutoRefresh() {
+        if (friendsRefreshTimer != null) {
+            friendsRefreshTimer.stop();
+            friendsRefreshTimer = null;
+        }
+        if (roomsRefreshTimer != null) {
+            roomsRefreshTimer.stop();
+            roomsRefreshTimer = null;
         }
     }
 
@@ -223,6 +273,7 @@ public class LobbyController {
 
         Button backButton = UIHelper.createButton("🔙 BACK TO MENU", UIHelper.DANGER_COLOR);
         backButton.setOnAction(e -> {
+            stopAutoRefresh();
             if (onBackToMenu != null) {
                 onBackToMenu.run();
             }
@@ -455,6 +506,7 @@ public class LobbyController {
 
         Button leaveButton = UIHelper.createButton("🚪 LEAVE ROOM", UIHelper.DANGER_COLOR);
         leaveButton.setOnAction(e -> {
+            stopAutoRefresh();
             network.sendMessage(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
             // Navigate back to menu
             show(currentUsername, null, new ArrayList<>());
@@ -462,6 +514,7 @@ public class LobbyController {
 
         startGameButton = UIHelper.createButton("🎮 START GAME", UIHelper.PRIMARY_COLOR);
         startGameButton.setOnAction(e -> {
+            stopAutoRefresh();
             network.sendMessage(new Message(MESSAGE_TYPE_START_GAME, currentRoomId));
         });
         startGameButton.setDisable(playersInRoom.size() < 2);

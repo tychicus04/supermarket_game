@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="SupermarketClient" type="Application" factoryName="Application">
+  <configuration default="false" name="SupermarketClient" type="Application" factoryName="Application" singleton="false">
     <option name="MAIN_CLASS_NAME" value="client.Main" />
     <module name="Client" />
     <option name="VM_PARAMETERS" value="-Xms256m -Xmx512m" />
