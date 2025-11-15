@@ -24,6 +24,7 @@ public class Main extends Application {
     private Stage primaryStage;
     private String currentUsername;
     private String currentRoomId;
+    private boolean gameIsOver = false;
 
     private LoginController loginController;
     private MenuController menuController;
@@ -73,7 +74,16 @@ public class Main extends Application {
         gameController = new ImprovedGameController(
                 primaryStage,
                 this::showMenuScreen,
-                lobbyController::showCurrentRoom,
+                () -> {
+                    gameIsOver = false;
+
+                    if (this.currentRoomId != null) {
+                        lobbyController.showCurrentRoom();
+                    } else {
+                        utils.UIHelper.showError("Room Not Found", "The room was closed by the host.");
+                        showLobby();
+                    }
+                },
                 networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
     }
@@ -138,6 +148,16 @@ public class Main extends Application {
                     menuController.handleRoomUpdate(message);
                     if (lobbyController != null) {
                         lobbyController.handleRoomUpdate(message);
+                    }
+                    break;
+                case MESSAGE_TYPE_ROOM_DELETED:
+                    if (gameIsOver) {
+                        this.currentRoomId = null;
+                        System.out.println("Room deleted, but game over screen is active.");
+                    } else {
+                        this.currentRoomId = null;
+                        utils.UIHelper.showError("Room Closed", message.getData().toString());
+                        showLobby();
                     }
                     break;
                 case MESSAGE_TYPE_JOIN_FAIL:
@@ -216,12 +236,14 @@ public class Main extends Application {
                     }
                     break;
                 case MESSAGE_TYPE_GAME_START:
+                    gameIsOver = false;
                     Platform.runLater(() -> showGameScreen(false));
                     break;
                 case MESSAGE_TYPE_S2C_GAME_STATE:
                     gameController.handleGameState(message);
                     break;
                 case MESSAGE_TYPE_S2C_GAME_OVER:
+                    gameIsOver = true;
                     gameController.handleGameOver(message);
                     break;
                 case MESSAGE_TYPE_LEADERBOARD:

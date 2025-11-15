@@ -254,43 +254,40 @@ public class ClientHandler implements Runnable {
     private void handleLeaveRoom(Message msg) {
         String roomId = msg.getData();
         GameRoom room = GameServer.getRoom(roomId);
-        
-        if (room != null) {
-            MultiplayerGameSession session = GameServer.getGameSession(roomId);
-            if (session != null && session.isActive()) {
-                System.out.println("Player " + username + " left, stopping game in room " + roomId);
-                session.stopGame("OPPONENT_LEFT", this.username); // Sẽ tự động broadcast GAME_OVER và remove session
-            }
-            String creator = room.getCreator();
-            room.removePlayer(username);
-            this.currentRoomId = null;
+        if (room == null) return; // Phòng không tồn tại
 
-            // Check if room should be deleted
-            boolean shouldDelete = false;
+        MultiplayerGameSession session = GameServer.getGameSession(roomId);
+        // Kiểm tra xem game có đang chạy không
+        boolean wasGameActive = (session != null && session.isActive());
 
-            // Delete if room is empty
-            if (room.isEmpty()) {
-                shouldDelete = true;
-                System.out.println("🗑️ Room " + roomId + " is empty, deleting...");
-            }
-            // Delete if creator left
-            else if (username.equals(creator)) {
-                shouldDelete = true;
-                System.out.println("🗑️ Creator " + username + " left room " + roomId + ", deleting room...");
-                // Notify remaining players
-                GameServer.broadcastToRoom(roomId,
+        if (wasGameActive) {
+            // 1. Game đang chạy: Dừng game, báo P2 thắng
+            System.out.println("Player " + username + " left MID-GAME, stopping game in room " + roomId);
+            session.stopGame("OPPONENT_LEFT", this.username);
+        }
+
+        String creator = room.getCreator();
+        room.removePlayer(username); // Xóa host khỏi phòng
+        this.currentRoomId = null;
+
+        boolean shouldDelete = false;
+
+        if (room.isEmpty()) {
+            shouldDelete = true; // Luôn xóa nếu phòng trống
+        }
+        // 2. Chỉ xóa phòng nếu Host thoát KHI ĐANG Ở LOBBY (game không chạy)
+        else if (username.equals(creator)) {
+            shouldDelete = true;
+            System.out.println("🗑️ Creator " + username + " left room " + roomId + ", deleting room...");
+            GameServer.broadcastToRoom(roomId,
                     new Message(MESSAGE_TYPE_ROOM_DELETED, "Room creator left. Room has been closed."));
-            }
+        }
 
-            if (shouldDelete) {
-                GameServer.deleteRoom(roomId);
-            } else {
-                // Normal leave - just broadcast update
-                GameServer.broadcastToRoom(roomId,
+        if (shouldDelete) {
+            GameServer.deleteRoom(roomId);
+        } else {
+            GameServer.broadcastToRoom(roomId,
                     new Message(MESSAGE_TYPE_PLAYER_LEFT, username + ":" + room.getPlayerCount()));
-                GameServer.broadcastRoomListUpdate();
-                System.out.println("📢 Broadcasted room list update (room deleted)");
-            }
         }
     }
 
@@ -717,62 +714,56 @@ public class ClientHandler implements Runnable {
      */
     private void cleanup() {
         running = false;
-        
+
         if (username != null) {
-            boolean roomDeleted = false;
             this.currentRoomId = null;
             for (String roomId : GameServer.getAllRoomIds()) {
                 GameRoom room = GameServer.getRoom(roomId);
                 if (room != null && room.getPlayers().contains(username)) {
-                    MultiplayerGameSession session = GameServer.getGameSession(roomId);
-                    if (session != null && session.isActive()) {
-                        System.out.println("Player " + username + " disconnected, stopping game in room " + roomId);
-                        session.stopGame("OPPONENT_LEFT", this.username); // Sẽ tự động broadcast GAME_OVER
-                    }
-                    String creator = room.getCreator();
-                    room.removePlayer(username);
 
-                    // Delete room if empty or creator left
-                    if (room.isEmpty() || username.equals(creator)) {
-                        if (username.equals(creator) && !room.isEmpty()) {
-                            GameServer.broadcastToRoom(roomId,
+                    MultiplayerGameSession session = GameServer.getGameSession(roomId);
+                    // Kiểm tra xem game có đang chạy không
+                    boolean wasGameActive = (session != null && session.isActive());
+
+                    if (wasGameActive) {
+                        // 1. Game đang chạy: Dừng game, báo P2 thắng
+                        System.out.println("Player " + username + " disconnected MID-GAME, stopping game in room " + roomId);
+                        session.stopGame("OPPONENT_LEFT", this.username);
+                    }
+
+                    String creator = room.getCreator();
+                    room.removePlayer(username); // Xóa host khỏi phòng
+
+                    boolean shouldDelete = false;
+
+                    if (room.isEmpty()) {
+                        shouldDelete = true; // Luôn xóa nếu phòng trống
+                    }
+                    // 2. Chỉ xóa phòng nếu Host disconnect KHI ĐANG Ở LOBBY
+                    else if (username.equals(creator)) {
+                        shouldDelete = true;
+                        System.out.println("🗑️ Creator " + username + " disconnected from room " + roomId + ", deleting room...");
+                        GameServer.broadcastToRoom(roomId,
                                 new Message(MESSAGE_TYPE_ROOM_DELETED, "Room creator disconnected. Room closed."));
-                        }
+                    }
+
+                    if (shouldDelete) {
                         GameServer.deleteRoom(roomId);
-                        roomDeleted = true;
-                        System.out.println("🗑️ Room " + roomId + " deleted (user disconnect)");
                     } else {
                         GameServer.broadcastToRoom(roomId,
-                            new Message(MESSAGE_TYPE_PLAYER_LEFT, username + ":" + room.getPlayerCount()));
+                                new Message(MESSAGE_TYPE_PLAYER_LEFT, username + ":" + room.getPlayerCount()));
                     }
                 }
             }
-
-            // Broadcast room list update if any room was deleted
-            if (roomDeleted) {
-                GameServer.broadcastRoomListUpdate();
-                System.out.println("📢 Broadcasted room list update (cleanup)");
-            }
-
-            // Notify all friends that this user is now offline
-            List<String> friends = database.getFriends(username);
-            for (String friend : friends) {
-                ClientHandler friendHandler = GameServer.getClient(friend);
-                if (friendHandler != null) {
-                    friendHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_STATUS_CHANGED,
-                            username + ";offline"));
-                    System.out.println("🔴 Notified " + friend + " that " + username + " is offline");
-                }
-            }
-
             GameServer.unregisterClient(username);
         }
-        
+
         try {
             if (out != null) out.close();
             if (in != null) in.close();
             socket.close();
         } catch (IOException e) {
+            // Ignored
         }
     }
     
