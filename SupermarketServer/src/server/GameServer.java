@@ -162,6 +162,18 @@ public class GameServer {
     }
 
     /**
+     * Broadcast updated room list to all connected clients
+     */
+    public static void broadcastRoomListUpdate() {
+        String roomListJson = getRoomListJson();
+        models.Message updateMessage = new models.Message("S2C_ROOM_LIST", roomListJson);
+
+        for (Map.Entry<String, ClientHandler> entry : connectedClients.entrySet()) {
+            entry.getValue().sendMessage(updateMessage);
+        }
+    }
+
+    /**
      * Start a multiplayer game session
      */
     public static MultiplayerGameSession startGameSession(String roomId) {

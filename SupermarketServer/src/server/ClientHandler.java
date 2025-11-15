@@ -156,6 +156,16 @@ public class ClientHandler implements Runnable {
             GameServer.registerClient(username, this);
             sendMessage(new Message(MESSAGE_TYPE_LOGIN_SUCCESS, "Welcome " + username + "!"));
             System.out.println("Login successful: " + username);
+            // Notify all friends that this user is now online
+            List<String> friends = database.getFriends(username);
+            for (String friend : friends) {
+                ClientHandler friendHandler = GameServer.getClient(friend);
+                if (friendHandler != null) {
+                    friendHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_STATUS_CHANGED,
+                            username + ";online"));
+                    System.out.println("🟢 Notified " + friend + " that " + username + " is online");
+                }
+            }
         } else {
             sendMessage(new Message(MESSAGE_TYPE_LOGIN_FAIL, "Invalid username or password"));
             System.out.println("Login failed for: " + user);
@@ -202,6 +212,9 @@ public class ClientHandler implements Runnable {
         room.addPlayer(username);
         
         sendMessage(new Message(MESSAGE_TYPE_ROOM_CREATED, roomId + ":" + room.getPlayerCount()));
+
+        GameServer.broadcastRoomListUpdate();
+        System.out.println("📢 Broadcasted room list update (room created)");
     }
     
     private void handleJoinRoom(Message msg) {
@@ -263,6 +276,8 @@ public class ClientHandler implements Runnable {
                 // Normal leave - just broadcast update
                 GameServer.broadcastToRoom(roomId,
                     new Message(MESSAGE_TYPE_PLAYER_LEFT, username + ":" + room.getPlayerCount()));
+                GameServer.broadcastRoomListUpdate();
+                System.out.println("📢 Broadcasted room list update (room deleted)");
             }
         }
     }
@@ -520,7 +535,8 @@ public class ClientHandler implements Runnable {
             // Notify the requester
             ClientHandler requesterHandler = GameServer.getClient(fromUser);
             if (requesterHandler != null) {
-                requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_ACCEPTED, username));
+                requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_ACCEPTED,
+                    username + " accepted your friend request"));
             }
 
             // Send updated friend lists to both
@@ -547,6 +563,14 @@ public class ClientHandler implements Runnable {
 
         if (database.rejectFriendRequest(fromUser, username)) {
             sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REJECTED, fromUser));
+
+            // Notify the requester that their request was rejected
+            ClientHandler requesterHandler = GameServer.getClient(fromUser);
+            if (requesterHandler != null) {
+                requesterHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REJECTED,
+                    username + " rejected your friend request"));
+            }
+
             System.out.println("👥 " + username + " rejected friend request from " + fromUser);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_ERROR, "Failed to reject friend request"));
@@ -714,6 +738,7 @@ public class ClientHandler implements Runnable {
         running = false;
         
         if (username != null) {
+            boolean roomDeleted = false;
             for (String roomId : GameServer.getAllRoomIds()) {
                 GameRoom room = GameServer.getRoom(roomId);
                 if (room != null && room.getPlayers().contains(username)) {
@@ -727,11 +752,29 @@ public class ClientHandler implements Runnable {
                                 new Message(MESSAGE_TYPE_ROOM_DELETED, "Room creator disconnected. Room closed."));
                         }
                         GameServer.deleteRoom(roomId);
+                        roomDeleted = true;
                         System.out.println("🗑️ Room " + roomId + " deleted (user disconnect)");
                     } else {
                         GameServer.broadcastToRoom(roomId,
                             new Message(MESSAGE_TYPE_PLAYER_LEFT, username + ":" + room.getPlayerCount()));
                     }
+                }
+            }
+
+            // Broadcast room list update if any room was deleted
+            if (roomDeleted) {
+                GameServer.broadcastRoomListUpdate();
+                System.out.println("📢 Broadcasted room list update (cleanup)");
+            }
+
+            // Notify all friends that this user is now offline
+            List<String> friends = database.getFriends(username);
+            for (String friend : friends) {
+                ClientHandler friendHandler = GameServer.getClient(friend);
+                if (friendHandler != null) {
+                    friendHandler.sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_STATUS_CHANGED,
+                            username + ";offline"));
+                    System.out.println("🔴 Notified " + friend + " that " + username + " is offline");
                 }
             }
 

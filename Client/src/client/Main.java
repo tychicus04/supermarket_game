@@ -149,16 +149,21 @@ public class Main extends Application {
                     break;
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_SENT:
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_FAIL:
+                case MESSAGE_TYPE_S2C_INVITE_SENT:
+                    // Show notification
+                    break;
+                case MESSAGE_TYPE_S2C_FRIEND_REQUEST_RECEIVED:
+                    // Refresh friend requests list in real-time
+                    if (lobbyController != null) {
+                        networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
+                    }
+                    break;
                 case MESSAGE_TYPE_S2C_FRIEND_ACCEPTED:
                 case MESSAGE_TYPE_S2C_FRIEND_REJECTED:
                 case MESSAGE_TYPE_S2C_FRIEND_REMOVED:
-                case MESSAGE_TYPE_S2C_INVITE_SENT:
-                case MESSAGE_TYPE_S2C_FRIEND_REQUEST_RECEIVED:
-                    // Show notification
-                    utils.UIHelper.showInfo("Friend", message.getData().toString());
-                    // Refresh friend list if in lobby
                     if (lobbyController != null) {
                         networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_FRIENDS, ""));
+                        networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
                     }
                     break;
                 case MESSAGE_TYPE_S2C_ROOM_INVITE:
