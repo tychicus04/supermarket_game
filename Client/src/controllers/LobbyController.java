@@ -1,5 +1,6 @@
 package controllers;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -59,7 +60,7 @@ public class LobbyController {
         this.playersInRoom = new ArrayList<>();
         this.friendsList = new ArrayList<>();
         this.availableRooms = new ArrayList<>();
-        this.playerLabels = new Label[4];
+        this.playerLabels = new Label[2];
     }
 
     public void show(String username, String roomId, List<String> initialPlayers) {
@@ -294,7 +295,7 @@ public class LobbyController {
         playerSlotsBox = new VBox(10);
         playerSlotsBox.setAlignment(Pos.CENTER);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 2; i++) {
             HBox playerSlot = createPlayerSlot(i);
             playerSlotsBox.getChildren().add(playerSlot);
         }
@@ -456,9 +457,7 @@ public class LobbyController {
         leaveButton.setOnAction(e -> {
             network.sendMessage(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
             // Navigate back to menu
-            if (onBackToMenu != null) {
-                onBackToMenu.run();
-            }
+            show(currentUsername, null, new ArrayList<>());
         });
 
         startGameButton = UIHelper.createButton("🎮 START GAME", UIHelper.PRIMARY_COLOR);
@@ -468,7 +467,7 @@ public class LobbyController {
         startGameButton.setDisable(playersInRoom.size() < 2);
 
         // Only show start button for room creator
-        if (!currentUsername.equals(playersInRoom.get(0))) {
+        if (playersInRoom.isEmpty() || !currentUsername.equals(playersInRoom.get(0))) {
             startGameButton.setVisible(false);
         }
 
@@ -480,12 +479,11 @@ public class LobbyController {
      * Update player slots display
      */
     private void updatePlayerSlots() {
-        // Safety check: only update if we're in room view and playerLabels is initialized
         if (!inRoom || playerLabels == null || playerLabels[0] == null) {
             return;
         }
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 2; i++) {
             Label label = playerLabels[i];
             if (i < playersInRoom.size()) {
                 String playerName = playersInRoom.get(i);
@@ -496,7 +494,7 @@ public class LobbyController {
                     label.setStyle("-fx-font-weight: bold; -fx-text-fill: #f39c12;");
                 }
             } else {
-                label.setText("--- Empty ---");
+                label.setText(" ");
                 label.setTextFill(Color.web("#95a5a6"));
                 label.setStyle("");
             }
@@ -605,16 +603,32 @@ public class LobbyController {
                 updateRoomFromJson(data);
                 break;
 
-            case "PLAYER_JOINED":
-                    // Only update if we're in room view (playerLabels is initialized)
-                    if (inRoom && playerLabels != null && playerLabels[0] != null) {
-                        updatePlayerSlots();
+//            case "PLAYER_JOINED":
+//            case "PLAYER_LEFT":
+//                String[] parts = data.split(":");
+//                if (parts.length >= 2) {
+//                    // Update player list (simplified - server should send full list)
+//                    // For now, just update the count
+//                    updatePlayerSlots();
+//                }
+//                break;
+            case MESSAGE_TYPE_PLAYER_JOINED:
+                String[] joinParts = data.split(":");
+                if (joinParts.length >= 1) {
+                    String playerWhoJoined = joinParts[0];
+                    if (!playersInRoom.contains(playerWhoJoined)) {
+                        playersInRoom.add(playerWhoJoined);
+                        Platform.runLater(this::updatePlayerSlots);
                     }
-                String[] parts = data.split(":");
-                if (parts.length >= 2) {
-                    // Update player list (simplified - server should send full list)
-                    // For now, just update the count
-                    updatePlayerSlots();
+                }
+                break;
+
+            case MESSAGE_TYPE_PLAYER_LEFT:
+                String[] leftParts = data.split(":");
+                if (leftParts.length >= 1) {
+                    String playerWhoLeft = leftParts[0];
+                    playersInRoom.remove(playerWhoLeft);
+                    Platform.runLater(this::updatePlayerSlots);
                 }
                 break;
         }
@@ -1157,6 +1171,26 @@ public class LobbyController {
         }
 
         return result;
+    }
+
+    public void showCurrentRoom() {
+        if (mainRoot != null && mainRoot.getScene() != null) {
+            // Chỉ cần hiển thị lại Scene cũ
+            stage.setScene(mainRoot.getScene());
+            stage.show();
+
+            // Cập nhật lại trạng thái nút (vì player list có thể đã thay đổi
+            // nếu người kia thoát)
+            updatePlayerSlots();
+        } else {
+            // Fallback: Nếu UI bị mất, tạo lại
+            if (currentUsername != null && currentRoomId != null) {
+                show(currentUsername, currentRoomId, playersInRoom);
+            } else {
+                // Fallback cuối cùng: Về menu
+                if (onBackToMenu != null) onBackToMenu.run();
+            }
+        }
     }
 }
 

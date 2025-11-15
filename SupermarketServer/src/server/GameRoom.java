@@ -16,7 +16,7 @@ public class GameRoom {
     private final String creator;
     private final List<String> players;
     private final Map<String, Integer> scores;
-    private final int maxPlayers = 4;
+    private final int maxPlayers = 2;
     private final long createdTime;
     
     public GameRoom(String roomId, String creator) {
@@ -129,6 +129,32 @@ public class GameRoom {
     
     public long getCreatedTime() {
         return createdTime;
+    }
+
+    public void resetScores() {
+        synchronized (scores) {
+            for (String player : players) {
+                scores.put(player, 0);
+            }
+        }
+    }
+
+    public Map<String, Integer> getScoresMap() {
+        return this.scores;
+    }
+
+    public void broadcastToOthers(Message message, String playerToExclude) {
+        synchronized (players) {
+            for (String player : players) {
+                // Chỉ gửi nếu không phải là người chơi bị loại trừ
+                if (!player.equals(playerToExclude)) {
+                    ClientHandler handler = GameServer.getClient(player);
+                    if (handler != null) {
+                        handler.sendMessage(message);
+                    }
+                }
+            }
+        }
     }
     
     @Override

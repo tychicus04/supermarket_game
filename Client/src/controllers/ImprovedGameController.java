@@ -23,6 +23,10 @@ import utils.SoundManager;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+
+import static constants.GameConstants.MESSAGE_TYPE_GAME_SCORE;
+import static constants.GameConstants.MESSAGE_TYPE_LEAVE_ROOM;
 
 /**
  * Chỉ chỉnh sửa logic gameplay:
@@ -35,6 +39,8 @@ public class ImprovedGameController {
 
     private Stage primaryStage;
     private Runnable onBackToMenu;
+    private Runnable onBackToRoom;
+    private Consumer<Message> onSendMessage;
 
     // ====== Giữ nguyên các field UI đã có trong project ======
     private Label scoreLabel;
@@ -46,6 +52,7 @@ public class ImprovedGameController {
     private ImageView customerImage;
     private VBox root; // giả định layout hiện có
     private HBox itemsRow; // thanh/khung hiện vật phẩm, vẫn hiển thị nhưng bỏ click
+
 
     // ====== Gameplay state (MỚI) ======
     // Ma trận cố định 3x3 tất cả vật phẩm: ánh xạ phím 1..9 (hàng-trước-cột)
@@ -82,23 +89,31 @@ public class ImprovedGameController {
     private static final int GAME_DURATION_SECONDS = 60; // Thời gian chơi: 1 phút
 
     private boolean isSinglePlayer = true;
+    private String myUsername;
     private Label gameTimeLabel; // Hiển thị thời gian còn lại của màn chơi
     private boolean gameEnded = false;
+    private String gameOverReason = null;
     private SoundManager soundManager;
     private int currentSequenceLength = 0; // Độ dài order hiện tại
+    private String currentRoomId;
+
 
     // Constructor
-    public ImprovedGameController(Stage stage, Runnable onBackToMenu) {
+    public ImprovedGameController(Stage stage, Runnable onBackToMenu, Runnable onBackToRoom, Consumer<Message> onSendMessage) {
         this.primaryStage = stage;
         this.onBackToMenu = onBackToMenu;
+        this.onBackToRoom = onBackToRoom;
         this.soundManager = SoundManager.getInstance();
+        this.onSendMessage = onSendMessage;
     }
 
     // ====== Public API (GIỮ NGUYÊN TÊN) ======
 
     /** Màn chơi chính */
-    public void show(boolean isSinglePlayer) {
+    public void show(boolean isSinglePlayer, String username, String roomId) {
         this.isSinglePlayer = isSinglePlayer;
+        this.myUsername = username;
+        this.currentRoomId = roomId;
         // -- xây UI (giữ cấu trúc cũ, chỉ tóm tắt phần không ảnh hưởng logic) --
         root = new VBox(16);
         root.setPadding(new Insets(20));
@@ -218,6 +233,9 @@ public class ImprovedGameController {
         backButton.setStyle("-fx-font-size: 14px; -fx-background-color: #95a5a6; -fx-text-fill: white; -fx-padding: 8 15;");
         backButton.setOnAction(e -> {
             stopAllTimers();
+            if (onSendMessage != null && currentRoomId != null && !isSinglePlayer) {
+                onSendMessage.accept(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
+            }
             onBackToMenu.run();
         });
 
@@ -242,6 +260,8 @@ public class ImprovedGameController {
         myScore = 0;
         opponentScore = 0;
         gameEnded = false;
+
+        sendScoreUpdate();
         updateScoreLabels();
 
         gameStartMillis = System.currentTimeMillis();
@@ -265,28 +285,6 @@ public class ImprovedGameController {
         nextRequest();
         setCustomerEmotion("neutral");
     }
-
-    /** Cập nhật điểm từ server – GIỮ TÊN */
-    public void handleScoreUpdate(Message message) {
-        // Có thể parse message để cập nhật opponentScore nếu server gửi
-        // Ở client demo: chỉ in log để giữ API
-        System.out.println("Score update: " + message.getData());
-    }
-
-    /** Server báo đúng item – GIỮ TÊN */
-    public void handleItemCorrect(Message message) {
-        // Trong luật mới, điểm chỉ + khi hoàn tất cả chuỗi
-        // Giữ nguyên để không phá API; không cộng lẻ theo item nữa
-        System.out.println("Correct (per-item) ignored – using per-sequence scoring.");
-    }
-
-    /** Server báo sai item – GIỮ TÊN */
-    public void handleItemWrong(Message message) {
-        // Giữ API, nhưng logic trừ điểm đã chuyển sang handleKey()
-        System.out.println("Wrong (per-item) handled locally.");
-    }
-
-    // ====== Logic gameplay MỚI ======
 
     /** Tạo map phím 1..9 vào item theo ma trận cố định */
     private void initKeyMap() {
@@ -331,6 +329,7 @@ public class ImprovedGameController {
             if (currentIndex >= currentSequence.size()) {
                 // hoàn tất chuỗi -> cộng điểm bằng độ dài order, chuyển yêu cầu mới
                 myScore += currentSequenceLength;
+                sendScoreUpdate();
                 updateScoreLabels();
                 nextRequest();
                 //playCorrect() from SoundManager
@@ -339,9 +338,19 @@ public class ImprovedGameController {
         } else {
             // sai -> trừ 1 điểm, không chuyển yêu cầu
             myScore = Math.max(0, myScore - 1);
+            sendScoreUpdate();
             updateScoreLabels();
             shakeRequest();
             setCustomerEmotion("angry"); // Customer tức giận
+        }
+    }
+
+    private void sendScoreUpdate() {
+        // (isSinglePlayer sẽ luôn là false)
+        if (onSendMessage != null && !isSinglePlayer) {
+            // Sử dụng hằng số C2S (Client-to-Server)
+            Message scoreMsg = new Message(MESSAGE_TYPE_GAME_SCORE, String.valueOf(myScore));
+            onSendMessage.accept(scoreMsg);
         }
     }
 
@@ -474,9 +483,7 @@ public class ImprovedGameController {
         stopAllTimers();
 
         // Hiển thị màn hình game over
-        Platform.runLater(() -> {
-            showGameOverScreen();
-        });
+        Platform.runLater(this::showGameOverScreen);
     }
 
     /** Hiển thị màn hình game over */
@@ -489,63 +496,80 @@ public class ImprovedGameController {
         Image bgImage = AssetManager.getImage("bg_game");
         if (bgImage != null) {
             BackgroundImage background = new BackgroundImage(
-                bgImage,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundPosition.CENTER,
-                new BackgroundSize(100, 100, true, true, false, true)
+                    bgImage,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundPosition.CENTER,
+                    new BackgroundSize(100, 100, true, true, false, true)
             );
             gameOverRoot.setBackground(new Background(background));
         } else {
             gameOverRoot.setStyle("-fx-background-color: linear-gradient(to bottom, #2c3e50, #34495e);");
         }
 
-        // Game Over Title
-        Label gameOverTitle = new Label("⏱️ TIME'S UP!");
+        // --- Logic so sánh điểm ---
+        String titleText;
+        Color titleColor;
+
+        if (gameOverReason != null && gameOverReason.equals("OPPONENT_LEFT")) {
+            titleText = "🏆 OPPONENT LEFT!";
+            titleColor = Color.web("#f39c12"); // Màu vàng/cam chiến thắng
+            soundManager.playGameOver(); // Chơi âm thanh chiến thắng
+        }
+        else{
+            if (myScore > opponentScore) {
+            titleText = "🎉 YOU WIN! 🎉";
+            titleColor = Color.web("#2ecc71"); // Green
+            soundManager.playGameOver(); // (Hoặc âm thanh chiến thắng)
+        } else if (myScore < opponentScore) {
+            titleText = "😥 YOU LOSE 😥";
+            titleColor = Color.web("#e74c3c"); // Red
+            soundManager.playGameOver(); // (Âm thanh thất bại)
+        } else {
+            titleText = "🤝 IT'S A DRAW! 🤝";
+            titleColor = Color.web("#f39c12"); // Orange
+        }}
+
+        Label gameOverTitle = new Label(titleText);
         gameOverTitle.setFont(Font.font("Arial", 60));
-        gameOverTitle.setTextFill(Color.web("#e74c3c"));
+        gameOverTitle.setTextFill(titleColor);
         gameOverTitle.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 15, 0, 0, 3);");
 
-        // Score Panel
         VBox scorePanel = new VBox(15);
         scorePanel.setAlignment(Pos.CENTER);
         scorePanel.setPadding(new Insets(30));
         scorePanel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.9); -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 20, 0, 0, 5);");
 
-        Label finalScoreLabel = new Label("FINAL SCORE");
-        finalScoreLabel.setFont(Font.font("Arial", 24));
-        finalScoreLabel.setTextFill(Color.web("#7f8c8d"));
+        // Your Score
+        Label yourScoreLabel = new Label("Your Score (" + (myUsername != null ? myUsername : "You") + ")");
+        yourScoreLabel.setFont(Font.font("Arial", 24));
+        yourScoreLabel.setTextFill(Color.web("#3498db"));
+        Label yourScoreValue = new Label(String.valueOf(myScore));
+        yourScoreValue.setFont(Font.font("Arial", 48));
+        yourScoreValue.setStyle("-fx-font-weight: bold;");
 
-        Label scoreValue = new Label(String.valueOf(myScore));
-        scoreValue.setFont(Font.font("Arial", 72));
-        scoreValue.setTextFill(Color.web("#2c3e50"));
-        scoreValue.setStyle("-fx-font-weight: bold;");
+        // Opponent's Score
+        Label oppScoreLabel = new Label("Opponent's Score");
+        oppScoreLabel.setFont(Font.font("Arial", 24));
+        oppScoreLabel.setTextFill(Color.web("#e74c3c"));
+        Label oppScoreValue = new Label(String.valueOf(opponentScore));
+        oppScoreValue.setFont(Font.font("Arial", 48));
+        oppScoreValue.setStyle("-fx-font-weight: bold;");
 
-        Label pointsLabel = new Label("points");
-        pointsLabel.setFont(Font.font("Arial", 20));
-        pointsLabel.setTextFill(Color.web("#95a5a6"));
-
-        // Hiển thị đánh giá
-        Label performanceLabel = new Label(getPerformanceMessage(myScore));
-        performanceLabel.setFont(Font.font("Arial", 18));
-        performanceLabel.setTextFill(Color.web("#3498db"));
-        performanceLabel.setStyle("-fx-font-style: italic;");
-
-        scorePanel.getChildren().addAll(finalScoreLabel, scoreValue, pointsLabel, performanceLabel);
+        scorePanel.getChildren().addAll(yourScoreLabel, yourScoreValue, oppScoreLabel, oppScoreValue);
 
         // Buttons
         HBox buttonBox = new HBox(20);
         buttonBox.setAlignment(Pos.CENTER);
 
-        Button playAgainBtn = new Button("🔄 Play Again");
-        playAgainBtn.setFont(Font.font("Arial", 18));
-        playAgainBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
-        playAgainBtn.setOnMouseEntered(e -> playAgainBtn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
-        playAgainBtn.setOnMouseExited(e -> playAgainBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"));
-        playAgainBtn.setOnAction(e -> {
-            show(isSinglePlayer); // Restart game
-        });
-
+        Button backToRoomBtn = new Button("🔙 Back to Room");
+        backToRoomBtn.setFont(Font.font("Arial", 18));
+        backToRoomBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
+        backToRoomBtn.setOnAction(e -> {
+                    if (onBackToRoom != null) {
+                        onBackToRoom.run();
+                    }
+                });
         Button mainMenuBtn = new Button("🏠 Main Menu");
         mainMenuBtn.setFont(Font.font("Arial", 18));
         mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
@@ -557,35 +581,13 @@ public class ImprovedGameController {
             }
         });
 
-        buttonBox.getChildren().addAll(playAgainBtn, mainMenuBtn);
+        buttonBox.getChildren().addAll(mainMenuBtn, backToRoomBtn);
 
         gameOverRoot.getChildren().addAll(gameOverTitle, scorePanel, buttonBox);
 
         Scene gameOverScene = new Scene(gameOverRoot, 820, 640);
         primaryStage.setScene(gameOverScene);
         primaryStage.show();
-
-        // Play game over sound if available
-        try {
-            utils.SoundManager.getInstance().playGameOver();
-        } catch (Exception e) {
-            // Sound not available, ignore
-        }
-    }
-
-    /** Get performance message based on score */
-    private String getPerformanceMessage(int score) {
-        if (score >= 20) {
-            return "🌟 EXCELLENT! You're a supermarket master!";
-        } else if (score >= 15) {
-            return "🎉 GREAT JOB! Keep it up!";
-        } else if (score >= 10) {
-            return "👍 GOOD! You're getting better!";
-        } else if (score >= 5) {
-            return "💪 NOT BAD! Practice makes perfect!";
-        } else {
-            return "🎯 KEEP TRYING! You can do better!";
-        }
     }
 
     /** Dừng tất cả timers */
@@ -685,86 +687,62 @@ public class ImprovedGameController {
         );
     }
 
-    // ====== Giữ nguyên chữ ký phương thức cũ (nếu có) ======
-
-    /** Ví dụ: vẫn trả emoji nếu project cũ gọi tới (không ảnh hưởng gameplay) */
-    private String getEmojiForItem(String itemName) {
-        // Fallback if AssetManager doesn't have emoji method
-        return "📦";
-    }
-
-    // ====== Methods called from Main.java ======
-
-    /** Called when receiving NEW_REQUEST from server (multiplayer) */
-    public void handleNewRequest(Message message) {
-        // In multiplayer mode, server sends the new request
-        if (!isSinglePlayer) {
-            String data = message.getData().toString();
-            String[] items = data.split(",");
-            currentSequence = new ArrayList<>(Arrays.asList(items));
-            currentIndex = 0;
-            requestLabel.setText(renderSequence(currentSequence, currentIndex));
-        }
-    }
-//
-//    /** Called when receiving ITEM_RESULT from server */
-//    public void handleItemCorrect(Message message) {
-//        // Server confirms item was correct
-//        System.out.println("✓ Server confirmed correct item");
-//    }
-//
-//    /** Called when receiving ITEM_WRONG from server */
-//    public void handleItemWrong(Message message) {
-//        // Server says wrong item
-//        System.out.println("✗ Server says wrong item");
-//        shakeRequest();
-//    }
-
     /** Called when receiving GAME_STATE from server */
     public void handleGameState(Message message) {
+        if (timeLabel == null || scoreLabel == null) {
+            System.out.println("WARN: Received GAME_STATE before game screen is loaded. Ignoring.");
+            return;
+        }
         // Parse game state: remainingItems|timeout|player1:score1|player2:score2
         String data = message.getData().toString();
         String[] parts = data.split("\\|");
 
-        if (parts.length >= 3) {
-            // Update timeout
-            try {
-                allowedTimeSeconds = Double.parseDouble(parts[1]);
-                timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
-            } catch (NumberFormatException e) {
-                // Ignore
-            }
+        if (parts.length < 3) return; // Dữ liệu không hợp lệ
 
-            // Update scores
-            for (int i = 2; i < parts.length; i++) {
-                String[] playerScore = parts[i].split(":");
-                if (playerScore.length == 2) {
+        // Cập nhật thời gian (nếu có)
+        try {
+            allowedTimeSeconds = Double.parseDouble(parts[1]);
+            timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
+        } catch (NumberFormatException e) {
+            // Bỏ qua nếu phần timeout không hợp lệ
+        }
+
+        int latestMyScore = this.myScore;
+        int latestOpponentScore = this.opponentScore;
+
+        for (int i = 2; i < parts.length; i++) {
+            String[] playerScore = parts[i].split(":");
+            if (playerScore.length == 2) {
+                try {
                     String playerName = playerScore[0];
                     int score = Integer.parseInt(playerScore[1]);
 
-                    // Update opponent score (assuming first player is opponent)
-                    if (i == 2) {
-                        opponentScore = score;
+                    if (playerName.equals(this.myUsername)) {
+                        latestMyScore = score;
+                    } else {
+                        // Bất kỳ ai không phải "tôi" đều là đối thủ
+                        latestOpponentScore = score;
                     }
+
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid score format in GAME_STATE: " + parts[i]);
                 }
             }
-            updateScoreLabels();
         }
+
+        // Cập nhật điểm lên UI
+        this.myScore = latestMyScore;
+        this.opponentScore = latestOpponentScore;
+        updateScoreLabels();
     }
 
     /** Called when game is over */
     public void handleGameOver(Message message) {
-        if (roundTimer != null) roundTimer.stop();
-        if (hudTicker != null) hudTicker.stop();
+        gameEnded = true;
+        stopAllTimers();
 
-        String result = message.getData().toString();
-        utils.UIHelper.showInfo("Game Over", result);
-
+        this.gameOverReason = message.getData().toString();
         // Show option to go back to menu
-        Platform.runLater(() -> {
-            if (onBackToMenu != null) {
-                onBackToMenu.run();
-            }
-        });
+        Platform.runLater(this::showGameOverScreen);
     }
 }

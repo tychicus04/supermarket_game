@@ -10,6 +10,9 @@ import javafx.application.Platform;
 import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
+import utils.SoundManager;
+
+import java.util.List;
 
 import static constants.GameConstants.*;
 
@@ -20,13 +23,14 @@ public class Main extends Application {
     private NetworkManager networkManager;
     private Stage primaryStage;
     private String currentUsername;
+    private String currentRoomId;
 
     private LoginController loginController;
     private MenuController menuController;
     private LobbyController lobbyController;
     private ImprovedGameController gameController;
     private LeaderboardController leaderboardController;
-    
+
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
@@ -66,7 +70,11 @@ public class Main extends Application {
         lobbyController = new LobbyController(primaryStage,
             () -> showGameScreen(false),
             this::showMenuScreen);
-        gameController = new ImprovedGameController(primaryStage, this::showMenuScreen);
+        gameController = new ImprovedGameController(
+                primaryStage,
+                this::showMenuScreen,
+                lobbyController::showCurrentRoom,
+                networkManager::sendMessage);
         leaderboardController = new LeaderboardController(primaryStage, this::showMenuScreen);
     }
     
@@ -95,8 +103,36 @@ public class Main extends Application {
                 case MESSAGE_TYPE_REGISTER_FAIL:
                     loginController.handleRegisterFail(message);
                     break;
+//                case MESSAGE_TYPE_ROOM_CREATED:
+//                case MESSAGE_TYPE_ROOM_JOINED:
+//                case MESSAGE_TYPE_PLAYER_JOINED:
+//                case MESSAGE_TYPE_PLAYER_LEFT:
+//                    menuController.handleRoomUpdate(message);
+//                    if (lobbyController != null) {
+//                        lobbyController.handleRoomUpdate(message);
+//                    }
+//                    break;
                 case MESSAGE_TYPE_ROOM_CREATED:
+                    String createdRoomData = message.getData().toString(); // "ROOM123:1"
+                    String[] createdParts = createdRoomData.split(":");
+                    this.currentRoomId = createdParts[0];
+                    List<String> creatorList = new java.util.ArrayList<>();
+                    creatorList.add(currentUsername);
+
+                    // Vẽ lại LobbyController ở chế độ "Phòng đợi"
+                    lobbyController.show(currentUsername, this.currentRoomId, creatorList);
+                    break;
+
                 case MESSAGE_TYPE_ROOM_JOINED:
+                    String joinedRoomData = message.getData().toString(); // "ROOM123:2"
+                    String[] joinedParts = joinedRoomData.split(":");
+                    this.currentRoomId = joinedParts[0];
+
+                    // GỌI HÀM SHOW ĐỂ VẼ LẠI GIAO DIỆN PHÒNG
+                    // (Danh sách người chơi sẽ được cập nhật bằng các tin nhắn PLAYER_JOINED)
+                    lobbyController.show(currentUsername, this.currentRoomId, new java.util.ArrayList<>());
+                    break;
+
                 case MESSAGE_TYPE_PLAYER_JOINED:
                 case MESSAGE_TYPE_PLAYER_LEFT:
                     menuController.handleRoomUpdate(message);
@@ -175,11 +211,13 @@ public class Main extends Application {
                     }
                     break;
                 case MESSAGE_TYPE_GAME_START:
-                    // Server has started the game, switch to game screen
                     Platform.runLater(() -> showGameScreen(false));
                     break;
-                case MESSAGE_TYPE_SCORE_UPDATE:
-                    gameController.handleScoreUpdate(message);
+                case MESSAGE_TYPE_S2C_GAME_STATE:
+                    gameController.handleGameState(message);
+                    break;
+                case MESSAGE_TYPE_S2C_GAME_OVER:
+                    gameController.handleGameOver(message);
                     break;
                 case MESSAGE_TYPE_LEADERBOARD:
                     leaderboardController.handleLeaderboard(message);
@@ -187,6 +225,7 @@ public class Main extends Application {
                 case MESSAGE_TYPE_ERROR:
                     handleError(message);
                     break;
+
             }
         });
     }
@@ -228,7 +267,7 @@ public class Main extends Application {
     }
     
     private void showGameScreen(boolean isSinglePlayer) {
-        gameController.show(isSinglePlayer);
+        gameController.show(isSinglePlayer, currentUsername, currentRoomId);
     }
     
     private void showLeaderboard() {
