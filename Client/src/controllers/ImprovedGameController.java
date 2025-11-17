@@ -19,6 +19,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import models.Message;
 import utils.AssetManager;
+import utils.JsonParser;
 import utils.SoundManager;
 
 import java.util.*;
@@ -697,22 +698,45 @@ public class ImprovedGameController {
             System.out.println("WARN: Received GAME_STATE before game screen is loaded. Ignoring.");
             return;
         }
+
         // Parse game state: remainingItems|timeout|player1:score1|player2:score2
         String data = message.getData().toString();
+        GameStateData gameState = parseGameState(data);
+
+        if (gameState != null) {
+            // Update time if available
+            if (gameState.timeout > 0) {
+                allowedTimeSeconds = gameState.timeout;
+                timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
+            }
+
+            // Update scores
+            this.myScore = gameState.myScore;
+            this.opponentScore = gameState.opponentScore;
+            updateScoreLabels();
+        }
+    }
+
+    /**
+     * Parse game state data from server
+     * Format: remainingItems|timeout|player1:score1|player2:score2
+     */
+    private GameStateData parseGameState(String data) {
         String[] parts = data.split("\\|");
+        if (parts.length < 3) return null;
 
-        if (parts.length < 3) return; // Dữ liệu không hợp lệ
+        GameStateData state = new GameStateData();
 
-        // Cập nhật thời gian (nếu có)
+        // Parse timeout
         try {
-            allowedTimeSeconds = Double.parseDouble(parts[1]);
-            timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
+            state.timeout = Double.parseDouble(parts[1]);
         } catch (NumberFormatException e) {
-            // Bỏ qua nếu phần timeout không hợp lệ
+            state.timeout = 0;
         }
 
-        int latestMyScore = this.myScore;
-        int latestOpponentScore = this.opponentScore;
+        // Parse player scores
+        int myScore = this.myScore;
+        int opponentScore = this.opponentScore;
 
         for (int i = 2; i < parts.length; i++) {
             String[] playerScore = parts[i].split(":");
@@ -722,22 +746,28 @@ public class ImprovedGameController {
                     int score = Integer.parseInt(playerScore[1]);
 
                     if (playerName.equals(this.myUsername)) {
-                        latestMyScore = score;
+                        myScore = score;
                     } else {
-                        // Bất kỳ ai không phải "tôi" đều là đối thủ
-                        latestOpponentScore = score;
+                        opponentScore = score;
                     }
-
                 } catch (NumberFormatException e) {
                     System.err.println("Invalid score format in GAME_STATE: " + parts[i]);
                 }
             }
         }
 
-        // Cập nhật điểm lên UI
-        this.myScore = latestMyScore;
-        this.opponentScore = latestOpponentScore;
-        updateScoreLabels();
+        state.myScore = myScore;
+        state.opponentScore = opponentScore;
+        return state;
+    }
+
+    /**
+     * Helper class to hold game state data
+     */
+    private static class GameStateData {
+        double timeout;
+        int myScore;
+        int opponentScore;
     }
 
     /** Called when game is over */

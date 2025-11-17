@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import utils.PasswordHasher;
 
 public class DatabaseManager {
     private static final String DB_URL = "jdbc:sqlite:supermarket_game.db";
@@ -141,7 +142,8 @@ public class DatabaseManager {
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     String storedPassword = rs.getString("password");
-                    return storedPassword.equals(password);
+                    // Use bcrypt to verify password
+                    return PasswordHasher.verifyPassword(password, storedPassword);
                 }
             }
         } catch (SQLException e) {
@@ -159,7 +161,9 @@ public class DatabaseManager {
         
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, password);
+            // Hash password using bcrypt before storing
+            String hashedPassword = PasswordHasher.hashPassword(password);
+            pstmt.setString(2, hashedPassword);
             pstmt.executeUpdate();
             return true;
             

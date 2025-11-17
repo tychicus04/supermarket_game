@@ -12,6 +12,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import models.Message;
+import utils.JsonParser;
 import utils.SoundManager;
 
 public class MatchHistoryController {
@@ -116,7 +117,7 @@ public class MatchHistoryController {
 
         String data = message.getData();
 
-        if (data.isEmpty()) {
+        if (data == null || data.isEmpty()) {
             Label noData = new Label("No matches played yet!");
             noData.setStyle("-fx-font-family: 'Courier New', monospace; " +
                     "-fx-font-size: 16px; -fx-text-fill: #666; " +
@@ -127,17 +128,45 @@ public class MatchHistoryController {
 
         String[] lines = data.split("\n");
         for (String line : lines) {
-            String[] parts = line.split("\\|");
-            if (parts.length >= 5) {
-                String result = parts[0];
-                String opponent = parts[1];
-                String myScore = parts[2];
-                String opponentScore = parts[3];
-                String playedAt = parts[4];
+            if (line.trim().isEmpty()) continue;
 
-                HBox entry = createMatchEntry(result, opponent, myScore, opponentScore, playedAt);
-                historyBox.getChildren().add(entry);
+            MatchHistoryEntry entry = parseMatchHistoryLine(line);
+            if (entry != null) {
+                HBox entryBox = createMatchEntry(entry.result, entry.opponent,
+                    entry.myScore, entry.opponentScore, entry.playedAt);
+                historyBox.getChildren().add(entryBox);
             }
+        }
+    }
+
+    /**
+     * Parse a single match history line
+     */
+    private MatchHistoryEntry parseMatchHistoryLine(String line) {
+        String[] parts = line.split("\\|");
+        if (parts.length >= 5) {
+            return new MatchHistoryEntry(parts[0], parts[1], parts[2], parts[3], parts[4]);
+        }
+        return null;
+    }
+
+    /**
+     * Helper class to hold match history data
+     */
+    private static class MatchHistoryEntry {
+        final String result;
+        final String opponent;
+        final String myScore;
+        final String opponentScore;
+        final String playedAt;
+
+        MatchHistoryEntry(String result, String opponent, String myScore,
+                         String opponentScore, String playedAt) {
+            this.result = result;
+            this.opponent = opponent;
+            this.myScore = myScore;
+            this.opponentScore = opponentScore;
+            this.playedAt = playedAt;
         }
     }
 
@@ -149,46 +178,86 @@ public class MatchHistoryController {
         statsBox.getChildren().clear();
 
         String data = message.getData();
+        MatchStats stats = parseMatchStats(data);
+
+        if (stats != null) {
+            displayMatchStats(stats);
+        }
+    }
+
+    /**
+     * Parse match statistics from pipe-delimited string
+     */
+    private MatchStats parseMatchStats(String data) {
+        if (data == null || data.isEmpty()) return null;
+
         String[] parts = data.split("\\|");
-
         if (parts.length >= 4) {
-            int wins = Integer.parseInt(parts[0]);
-            int losses = Integer.parseInt(parts[1]);
-            int draws = Integer.parseInt(parts[2]);
-            int totalMatches = Integer.parseInt(parts[3]);
+            try {
+                int wins = Integer.parseInt(parts[0].trim());
+                int losses = Integer.parseInt(parts[1].trim());
+                int draws = Integer.parseInt(parts[2].trim());
+                int totalMatches = Integer.parseInt(parts[3].trim());
+                return new MatchStats(wins, losses, draws, totalMatches);
+            } catch (NumberFormatException e) {
+                System.err.println("Error parsing match stats: " + e.getMessage());
+            }
+        }
+        return null;
+    }
 
-            double winRate = totalMatches > 0 ? (wins * 100.0 / totalMatches) : 0;
+    /**
+     * Display match statistics in the UI
+     */
+    private void displayMatchStats(MatchStats stats) {
+        double winRate = stats.totalMatches > 0 ? (stats.wins * 100.0 / stats.totalMatches) : 0;
 
-            Label statsTitle = new Label("YOUR STATS");
-            statsTitle.setStyle("-fx-font-family: 'Courier New', monospace; " +
-                    "-fx-font-size: 18px; -fx-font-weight: bold; " +
-                    "-fx-text-fill: #333;");
+        Label statsTitle = new Label("YOUR STATS");
+        statsTitle.setStyle("-fx-font-family: 'Courier New', monospace; " +
+                "-fx-font-size: 18px; -fx-font-weight: bold; " +
+                "-fx-text-fill: #333;");
 
-            HBox statsRow = new HBox(30);
-            statsRow.setAlignment(Pos.CENTER);
+        HBox statsRow = new HBox(30);
+        statsRow.setAlignment(Pos.CENTER);
 
-            Label winsLabel = new Label("Wins: " + wins);
-            winsLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
-                    "-fx-font-size: 14px; -fx-text-fill: #2ECC71; " +
-                    "-fx-font-weight: bold;");
+        Label winsLabel = new Label("Wins: " + stats.wins);
+        winsLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
+                "-fx-font-size: 14px; -fx-text-fill: #2ECC71; " +
+                "-fx-font-weight: bold;");
 
-            Label lossesLabel = new Label("Losses: " + losses);
-            lossesLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
-                    "-fx-font-size: 14px; -fx-text-fill: #E74C3C; " +
-                    "-fx-font-weight: bold;");
+        Label lossesLabel = new Label("Losses: " + stats.losses);
+        lossesLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
+                "-fx-font-size: 14px; -fx-text-fill: #E74C3C; " +
+                "-fx-font-weight: bold;");
 
-            Label drawsLabel = new Label("Draws: " + draws);
-            drawsLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
-                    "-fx-font-size: 14px; -fx-text-fill: #95A5A6; " +
-                    "-fx-font-weight: bold;");
+        Label drawsLabel = new Label("Draws: " + stats.draws);
+        drawsLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
+                "-fx-font-size: 14px; -fx-text-fill: #95A5A6; " +
+                "-fx-font-weight: bold;");
 
-            Label winRateLabel = new Label(String.format("Win Rate: %.1f%%", winRate));
-            winRateLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
-                    "-fx-font-size: 14px; -fx-text-fill: #3498DB; " +
-                    "-fx-font-weight: bold;");
+        Label winRateLabel = new Label(String.format("Win Rate: %.1f%%", winRate));
+        winRateLabel.setStyle("-fx-font-family: 'Courier New', monospace; " +
+                "-fx-font-size: 14px; -fx-text-fill: #3498DB; " +
+                "-fx-font-weight: bold;");
 
-            statsRow.getChildren().addAll(winsLabel, lossesLabel, drawsLabel, winRateLabel);
-            statsBox.getChildren().addAll(statsTitle, statsRow);
+        statsRow.getChildren().addAll(winsLabel, lossesLabel, drawsLabel, winRateLabel);
+        statsBox.getChildren().addAll(statsTitle, statsRow);
+    }
+
+    /**
+     * Helper class to hold match statistics
+     */
+    private static class MatchStats {
+        final int wins;
+        final int losses;
+        final int draws;
+        final int totalMatches;
+
+        MatchStats(int wins, int losses, int draws, int totalMatches) {
+            this.wins = wins;
+            this.losses = losses;
+            this.draws = draws;
+            this.totalMatches = totalMatches;
         }
     }
 

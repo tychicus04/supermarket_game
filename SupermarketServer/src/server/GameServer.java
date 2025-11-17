@@ -1,11 +1,15 @@
 package server;
 
 import database.DatabaseManager;
+import utils.JsonBuilder;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -137,24 +141,19 @@ public class GameServer {
      * Get list of all active rooms as JSON
      */
     public static String getRoomListJson() {
-        StringBuilder json = new StringBuilder("[");
-        boolean first = true;
+        List<Map<String, Object>> rooms = new ArrayList<>();
 
         for (Map.Entry<String, GameRoom> entry : activeRooms.entrySet()) {
-            if (!first) json.append(",");
-            first = false;
-
             GameRoom room = entry.getValue();
-            json.append("{");
-            json.append("\"roomId\":\"").append(room.getRoomId()).append("\",");
-            json.append("\"creator\":\"").append(room.getCreator()).append("\",");
-            json.append("\"playerCount\":").append(room.getPlayerCount()).append(",");
-            json.append("\"maxPlayers\":4");
-            json.append("}");
+            Map<String, Object> roomData = new HashMap<>();
+            roomData.put("roomId", room.getRoomId());
+            roomData.put("creator", room.getCreator());
+            roomData.put("playerCount", room.getPlayerCount());
+            roomData.put("maxPlayers", 4);
+            rooms.add(roomData);
         }
 
-        json.append("]");
-        return json.toString();
+        return JsonBuilder.buildObjectArray(rooms);
     }
 
     /**

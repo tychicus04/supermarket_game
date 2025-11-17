@@ -15,6 +15,7 @@ import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
 import javafx.util.Duration;
 import models.Message;
+import utils.JsonParser;
 import utils.SoundManager;
 
 public class LeaderboardController {
@@ -117,7 +118,7 @@ public class LeaderboardController {
         
         String data = message.getData();
         
-        if (data.isEmpty()) {
+        if (data == null || data.isEmpty()) {
             Label noData = new Label("No scores yet!");
             noData.getStyleClass().add("no-scores-label");
             leaderboardBox.getChildren().add(noData);
@@ -126,22 +127,65 @@ public class LeaderboardController {
         
         String[] lines = data.split("\n");
         int rank = 1;
+
         for (String line : lines) {
-            String[] parts = line.split(":");
-            if (parts.length >= 2) {
-                String username = parts[0];
-                String score = parts[1];
+            if (line.trim().isEmpty()) continue;
 
-                // Nếu có 3 phần, phần đầu là rank
-                if (parts.length >= 3) {
-                    username = parts[1];
-                    score = parts[2];
-                }
-
-                HBox entry = createLeaderboardEntry(rank, username, score);
-                leaderboardBox.getChildren().add(entry);
+            LeaderboardEntry entry = parseLeaderboardLine(line, rank);
+            if (entry != null) {
+                HBox entryBox = createLeaderboardEntry(entry.rank, entry.username, entry.score);
+                leaderboardBox.getChildren().add(entryBox);
                 rank++;
             }
+        }
+    }
+
+    /**
+     * Parse a single leaderboard line
+     * Format: "username:score" or "rank:username:score"
+     */
+    private LeaderboardEntry parseLeaderboardLine(String line, int defaultRank) {
+        String[] parts = line.split(":");
+
+        if (parts.length >= 2) {
+            String username;
+            String score;
+            int rank = defaultRank;
+
+            // Check if first part is a number (rank)
+            if (parts.length >= 3) {
+                try {
+                    rank = Integer.parseInt(parts[0]);
+                    username = parts[1];
+                    score = parts[2];
+                } catch (NumberFormatException e) {
+                    // First part is not a number, treat as username
+                    username = parts[0];
+                    score = parts[1];
+                }
+            } else {
+                username = parts[0];
+                score = parts[1];
+            }
+
+            return new LeaderboardEntry(rank, username, score);
+        }
+
+        return null;
+    }
+
+    /**
+     * Helper class to hold leaderboard entry data
+     */
+    private static class LeaderboardEntry {
+        final int rank;
+        final String username;
+        final String score;
+
+        LeaderboardEntry(int rank, String username, String score) {
+            this.rank = rank;
+            this.username = username;
+            this.score = score;
         }
     }
     

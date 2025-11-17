@@ -19,6 +19,9 @@ import javafx.animation.ParallelTransition;
 import javafx.util.Duration;
 import models.Message;
 import network.NetworkManager;
+import utils.JsonParser;
+import utils.RoomUpdateHandler;
+import utils.RoomUpdateHandler.*;
 import utils.SoundManager;
 import utils.UIHelper;
 
@@ -329,25 +332,33 @@ public class MenuController {
     }
 
     public void handleRoomUpdate(Message message) {
-        String[] data = message.getData().split(":");
+        String data = message.getData();
 
         switch (message.getType()) {
             case MESSAGE_TYPE_ROOM_CREATED:
             case MESSAGE_TYPE_ROOM_JOINED:
-                if (data.length >= 2) {
-                    showWaitingRoom(data[0], Integer.parseInt(data[1]));
+                // Format: "roomId:playerCount"
+                String[] parts = data.split(":", 2);
+                if (parts.length >= 2) {
+                    showWaitingRoom(parts[0], Integer.parseInt(parts[1]));
                 }
                 break;
                 
             case MESSAGE_TYPE_PLAYER_JOINED:
             case MESSAGE_TYPE_PLAYER_LEFT:
-                if (data.length >= 2 && roomPlayerCount != null) {
-                    int count = Integer.parseInt(data[1]);
-                    roomPlayerCount.setText("Players: " + count + "/4");
+                // Use RoomUpdateHandler for consistent parsing
+                PlayerChangeEvent event = RoomUpdateHandler.parsePlayerChange(data,
+                    message.getType().equals(MESSAGE_TYPE_PLAYER_JOINED));
 
-                    // Enable/disable start button
-                    if (startGameButton != null) {
-                        startGameButton.setDisable(count < 2);
+                if (event != null && roomPlayerCount != null) {
+                    int count = event.getPlayerCount();
+                    if (count >= 0) {
+                        roomPlayerCount.setText("Players: " + count + "/4");
+
+                        // Enable/disable start button
+                        if (startGameButton != null) {
+                            startGameButton.setDisable(count < 2);
+                        }
                     }
                 }
                 break;

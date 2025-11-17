@@ -2,6 +2,8 @@ package server;
 
 import database.DatabaseManager;
 import models.Message;
+import utils.JsonBuilder;
+import utils.ServerErrorHandler;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -189,22 +191,26 @@ public class ClientHandler implements Runnable {
         String user = data[0].trim();
         String pass = data[1];
         
-        if (user.length() < 3) {
-            sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, "Username must be at least 3 characters"));
+        // Validate username
+        String usernameError = ServerErrorHandler.validateUsername(user);
+        if (usernameError != null) {
+            sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, usernameError));
             return;
         }
         
-        if (pass.length() < 4) {
-            sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, "Password must be at least 4 characters"));
+        // Validate password
+        String passwordError = ServerErrorHandler.validatePassword(pass);
+        if (passwordError != null) {
+            sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, passwordError));
             return;
         }
         
         if (database.registerUser(user, pass)) {
             sendMessage(new Message(MESSAGE_TYPE_REGISTER_SUCCESS, "Account created! Please login."));
-            System.out.println("New user registered: " + user);
+            ServerErrorHandler.logInfo("REGISTER", "New user registered: " + user);
         } else {
             sendMessage(new Message(MESSAGE_TYPE_REGISTER_FAIL, "Username already exists"));
-            System.out.println("Registration failed (duplicate): " + user);
+            ServerErrorHandler.logWarning("REGISTER", "Registration failed (duplicate): " + user);
         }
     }
     
@@ -238,9 +244,10 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        List<String> playersAlreadyInRoom = room.getPlayers();
+        // Atomically get existing players and add new player to prevent race condition
+        List<String> playersAlreadyInRoom = room.getPlayersAndTryAddPlayer(username);
 
-        if (room.addPlayer(username)) {
+        if (playersAlreadyInRoom != null) {
             this.currentRoomId = roomId;
 
             sendMessage(new Message(MESSAGE_TYPE_ROOM_JOINED, roomId + ":" + room.getPlayerCount()));
@@ -248,7 +255,7 @@ public class ClientHandler implements Runnable {
             // Broadcast room update to all players in room (including new player)
             room.broadcastRoomUpdate();
 
-            System.out.println("👥 " + username + " joined room " + roomId +
+            System.out.println(username + " joined room " + roomId +
                              " (" + room.getPlayerCount() + "/4)");
         } else {
             sendMessage(new Message(MESSAGE_TYPE_JOIN_FAIL, "Room is full or you're already in it"));
@@ -484,16 +491,8 @@ public class ClientHandler implements Runnable {
         }
 
         List<String> results = database.searchUsers(searchTerm, username);
-
-        // Build JSON array
-        StringBuilder json = new StringBuilder("[");
-        for (int i = 0; i < results.size(); i++) {
-            if (i > 0) json.append(",");
-            json.append("\"").append(results.get(i)).append("\"");
-        }
-        json.append("]");
-
-        sendMessage(new Message(MESSAGE_TYPE_S2C_SEARCH_RESULTS, json.toString()));
+        String json = JsonBuilder.buildStringArray(results);
+        sendMessage(new Message(MESSAGE_TYPE_S2C_SEARCH_RESULTS, json));
     }
 
     /**
@@ -603,18 +602,14 @@ public class ClientHandler implements Runnable {
     private void sendFriendList() {
         List<String> friends = database.getFriends(username);
 
-        // Build JSON array
-        StringBuilder json = new StringBuilder("[");
-        for (int i = 0; i < friends.size(); i++) {
-            if (i > 0) json.append(",");
-            json.append("{")
-                .append("\"username\":\"").append(friends.get(i)).append("\",")
-                .append("\"online\":").append(GameServer.getClient(friends.get(i)) != null)
-                .append("}");
+        JsonBuilder.ArrayBuilder builder = new JsonBuilder.ArrayBuilder();
+        for (String friend : friends) {
+            boolean isOnline = GameServer.getClient(friend) != null;
+            String friendObj = JsonBuilder.buildFriendObject(friend, isOnline);
+            builder.addObject(friendObj);
         }
-        json.append("]");
 
-        sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_LIST, json.toString()));
+        sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_LIST, builder.build()));
     }
 
     /**
@@ -627,16 +622,8 @@ public class ClientHandler implements Runnable {
         }
 
         List<String> requests = database.getPendingFriendRequests(username);
-
-        // Build JSON array
-        StringBuilder json = new StringBuilder("[");
-        for (int i = 0; i < requests.size(); i++) {
-            if (i > 0) json.append(",");
-            json.append("\"").append(requests.get(i)).append("\"");
-        }
-        json.append("]");
-
-        sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUESTS, json.toString()));
+        String json = JsonBuilder.buildStringArray(requests);
+        sendMessage(new Message(MESSAGE_TYPE_S2C_FRIEND_REQUESTS, json));
     }
 
     /**

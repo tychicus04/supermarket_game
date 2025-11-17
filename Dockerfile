@@ -8,8 +8,9 @@ RUN apk add --no-cache wget
 
 WORKDIR /build
 
-# Download SQLite JDBC driver
-RUN wget https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.36.0.3/sqlite-jdbc-3.36.0.3.jar -O sqlite-jdbc.jar
+# Download dependencies
+RUN wget https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.36.0.3/sqlite-jdbc-3.36.0.3.jar -O sqlite-jdbc.jar && \
+    wget https://repo1.maven.org/maven2/org/mindrot/jbcrypt/0.4/jbcrypt-0.4.jar -O jbcrypt.jar
 
 # Copy server and shared source code
 COPY SupermarketServer/src ./server-src
@@ -18,10 +19,11 @@ COPY Shared/src/constants ./shared-constants
 
 # Compile Java source files
 RUN mkdir -p classes && \
-    javac -cp "sqlite-jdbc.jar" \
+    javac -cp "sqlite-jdbc.jar:jbcrypt.jar" \
     -d classes \
     shared-constants/*.java \
     shared-models/*.java \
+    server-src/utils/*.java \
     server-src/database/*.java \
     server-src/server/*.java
 
@@ -33,9 +35,10 @@ WORKDIR /app
 # Copy compiled classes and dependencies from builder
 COPY --from=builder /build/classes ./classes
 
-# Create lib directory and copy SQLite JDBC
+# Create lib directory and copy dependencies
 RUN mkdir -p /app/lib
 COPY --from=builder /build/sqlite-jdbc.jar ./lib/sqlite-jdbc.jar
+COPY --from=builder /build/jbcrypt.jar ./lib/jbcrypt.jar
 
 # Create directory for database
 RUN mkdir -p /app/data

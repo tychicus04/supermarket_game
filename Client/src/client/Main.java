@@ -1,18 +1,13 @@
 package client;
 
-import controllers.ImprovedGameController;
-import controllers.LeaderboardController;
-import controllers.LobbyController;
-import controllers.LoginController;
-import controllers.MatchHistoryController;
-import controllers.MenuController;
+import controllers.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
 import models.Message;
 import network.NetworkManager;
 
-import java.util.List;
+import java.util.*;
 
 import static constants.GameConstants.*;
 

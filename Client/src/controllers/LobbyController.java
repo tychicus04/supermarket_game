@@ -17,6 +17,9 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import models.Message;
 import network.NetworkManager;
+import utils.JsonParser;
+import utils.RoomUpdateHandler;
+import utils.RoomUpdateHandler.*;
 import utils.UIHelper;
 
 import java.util.ArrayList;
@@ -771,26 +774,13 @@ public class LobbyController {
         System.out.println("=== UPDATE ROOM FROM JSON ===");
         System.out.println("JSON: " + json);
 
+        RoomUpdate update = RoomUpdateHandler.parseRoomUpdate(json);
+        currentRoomCreator = update.getCreator();
+
         playersInRoom.clear();
-        int creatorStart = json.indexOf("\"creator\":\"") + 11;
-        int creatorEnd = json.indexOf("\"", creatorStart);
-        if (creatorStart > 10 && creatorEnd > creatorStart) {
-            currentRoomCreator = json.substring(creatorStart, creatorEnd);
-            System.out.println("Room creator updated to: " + currentRoomCreator);
-        }
+        playersInRoom.addAll(update.getPlayers());
 
-        int start = json.indexOf("[");
-        int end = json.indexOf("]");
-        if (start != -1 && end != -1) {
-            String playersStr = json.substring(start + 1, end);
-            String[] players = playersStr.replace("\"", "").split(",");
-            for (String player : players) {
-                if (!player.trim().isEmpty()) {
-                    playersInRoom.add(player.trim());
-                }
-            }
-        }
-
+        System.out.println("Room creator: " + currentRoomCreator);
         System.out.println("Players in room: " + playersInRoom);
 
         updatePlayerSlots();
@@ -802,26 +792,20 @@ public class LobbyController {
     private void parseFriendsList(String json) {
         friendsList.clear();
 
-        if (json.equals("[]")) return;
+        // Note: This parses the old format without online status
+        // For backward compatibility, we'll manually parse or use basic parsing
+        if (JsonParser.isEmptyArray(json)) return;
 
-        json = json.substring(1, json.length() - 1);
+        String[] friendObjects = JsonParser.splitJsonArray(json);
+        for (String friendJson : friendObjects) {
+            Map<String, String> friend = new HashMap<>();
+            String username = JsonParser.extractString(friendJson, "username");
+            String userId = String.valueOf(JsonParser.extractInt(friendJson, "user_id", 0));
 
-        int braceCount = 0;
-        int start = 0;
-
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == '{') braceCount++;
-            if (c == '}') {
-                braceCount--;
-                if (braceCount == 0) {
-                    String friendJson = json.substring(start, i + 1);
-                    Map<String, String> friend = parseFriendObject(friendJson);
-                    if (friend != null) {
-                        friendsList.add(friend);
-                    }
-                    start = i + 2;
-                }
+            if (username != null) {
+                friend.put("username", username);
+                friend.put("user_id", userId);
+                friendsList.add(friend);
             }
         }
     }
@@ -830,94 +814,12 @@ public class LobbyController {
      * Parse rooms list from JSON
      */
     private void parseRoomsList(String json) {
+        List<RoomInfo> rooms = RoomUpdateHandler.parseRoomsList(json);
+
         availableRooms.clear();
-
-        if (json.equals("[]")) return;
-
-        json = json.substring(1, json.length() - 1);
-
-        int braceCount = 0;
-        int start = 0;
-
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == '{') braceCount++;
-            if (c == '}') {
-                braceCount--;
-                if (braceCount == 0) {
-                    String roomJson = json.substring(start, i + 1);
-                    Map<String, String> room = parseRoomObject(roomJson);
-                    if (room != null) {
-                        availableRooms.add(room);
-                    }
-                    start = i + 2;
-                }
-            }
+        for (RoomInfo room : rooms) {
+            availableRooms.add(room.toMap());
         }
-    }
-
-    /**
-     * Parse single friend object from JSON
-     */
-    private Map<String, String> parseFriendObject(String json) {
-        Map<String, String> friend = new HashMap<>();
-
-        // Extract username
-        int usernameStart = json.indexOf("\"username\":\"") + 12;
-        int usernameEnd = json.indexOf("\"", usernameStart);
-        if (usernameStart > 11 && usernameEnd > usernameStart) {
-            friend.put("username", json.substring(usernameStart, usernameEnd));
-        }
-
-        // Extract user_id
-        int idStart = json.indexOf("\"user_id\":") + 10;
-        int idEnd = json.indexOf("}", idStart);
-        if (idStart > 9) {
-            String idStr = json.substring(idStart, idEnd).trim();
-            friend.put("user_id", idStr);
-        }
-
-        return friend.isEmpty() ? null : friend;
-    }
-
-    /**
-     * Parse single room object from JSON
-     */
-    private Map<String, String> parseRoomObject(String json) {
-        Map<String, String> room = new HashMap<>();
-
-        // Extract roomId
-        int roomIdStart = json.indexOf("\"roomId\":\"") + 10;
-        int roomIdEnd = json.indexOf("\"", roomIdStart);
-        if (roomIdStart > 9 && roomIdEnd > roomIdStart) {
-            room.put("roomId", json.substring(roomIdStart, roomIdEnd));
-        }
-
-        // Extract creator
-        int creatorStart = json.indexOf("\"creator\":\"") + 11;
-        int creatorEnd = json.indexOf("\"", creatorStart);
-        if (creatorStart > 10 && creatorEnd > creatorStart) {
-            room.put("creator", json.substring(creatorStart, creatorEnd));
-        }
-
-        // Extract playerCount
-        int countStart = json.indexOf("\"playerCount\":") + 14;
-        int countEnd = json.indexOf(",", countStart);
-        if (countEnd == -1) countEnd = json.indexOf("}", countStart);
-        if (countStart > 13) {
-            String countStr = json.substring(countStart, countEnd).trim();
-            room.put("playerCount", countStr);
-        }
-
-        // Extract maxPlayers
-        int maxStart = json.indexOf("\"maxPlayers\":") + 13;
-        int maxEnd = json.indexOf("}", maxStart);
-        if (maxStart > 12) {
-            String maxStr = json.substring(maxStart, maxEnd).trim();
-            room.put("maxPlayers", maxStr);
-        }
-
-        return room.isEmpty() ? null : room;
     }
 
     // ==================== FRIEND MANAGEMENT HANDLERS ====================
@@ -1078,54 +980,12 @@ public class LobbyController {
      * Parse friend list with online status
      */
     private void parseFriendListWithOnline(String json) {
+        List<FriendInfo> friends = RoomUpdateHandler.parseFriendsList(json);
+
         friendsList.clear();
-
-        if (json.equals("[]")) return;
-
-        json = json.substring(1, json.length() - 1); // Remove [ ]
-
-        int braceCount = 0;
-        int start = 0;
-
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == '{') braceCount++;
-            if (c == '}') {
-                braceCount--;
-                if (braceCount == 0) {
-                    String friendJson = json.substring(start, i + 1);
-                    Map<String, String> friend = parseFriendWithOnline(friendJson);
-                    if (friend != null) {
-                        friendsList.add(friend);
-                    }
-                    start = i + 2;
-                }
-            }
+        for (FriendInfo friend : friends) {
+            friendsList.add(friend.toMap());
         }
-    }
-
-    /**
-     * Parse friend object with online status
-     */
-    private Map<String, String> parseFriendWithOnline(String json) {
-        Map<String, String> friend = new HashMap<>();
-
-        // Extract username
-        int usernameStart = json.indexOf("\"username\":\"") + 12;
-        int usernameEnd = json.indexOf("\"", usernameStart);
-        if (usernameStart > 11 && usernameEnd > usernameStart) {
-            friend.put("username", json.substring(usernameStart, usernameEnd));
-        }
-
-        // Extract online status
-        int onlineStart = json.indexOf("\"online\":") + 9;
-        int onlineEnd = json.indexOf("}", onlineStart);
-        if (onlineStart > 8) {
-            String onlineStr = json.substring(onlineStart, onlineEnd).trim();
-            friend.put("online", onlineStr);
-        }
-
-        return friend.isEmpty() ? null : friend;
     }
 
     /**
@@ -1247,15 +1107,14 @@ public class LobbyController {
     private List<String> parseSimpleStringArray(String json) {
         List<String> result = new ArrayList<>();
 
-        if (json.equals("[]")) return result;
+        if (JsonParser.isEmptyArray(json)) return result;
 
-        json = json.substring(1, json.length() - 1);
+        String arrayContent = json.substring(1, json.length() - 1);
+        String[] items = JsonParser.splitArrayItems(arrayContent);
 
-        String[] parts = json.split(",");
-        for (String part : parts) {
-            String cleaned = part.trim().replace("\"", "");
-            if (!cleaned.isEmpty()) {
-                result.add(cleaned);
+        for (String item : items) {
+            if (!item.trim().isEmpty()) {
+                result.add(item.trim());
             }
         }
 

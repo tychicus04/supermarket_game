@@ -1,6 +1,7 @@
 package server;
 
 import models.Message;
+import utils.JsonBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +46,33 @@ public class GameRoom {
         return true;
     }
     
+    /**
+     * Atomically get existing players and try to add a new player.
+     * This prevents race conditions where the player list changes between
+     * checking and adding.
+     *
+     * @param username the username to add
+     * @return list of existing players if successfully added, null if failed
+     */
+    public synchronized List<String> getPlayersAndTryAddPlayer(String username) {
+        if (players.size() >= maxPlayers) {
+            return null;
+        }
+
+        if (players.contains(username)) {
+            return null;
+        }
+
+        // Get snapshot of existing players before adding new one
+        List<String> existingPlayers = new ArrayList<>(players);
+
+        // Add the new player
+        players.add(username);
+        scores.put(username, 0);
+
+        return existingPlayers;
+    }
+
     /**
      * Remove player from room
      */
@@ -114,16 +142,8 @@ public class GameRoom {
      * Broadcast room update to all players in room
      */
     public void broadcastRoomUpdate() {
-        StringBuilder json = new StringBuilder("{\"creator\":\"").append(creator).append("\",\"players\":[");
-        synchronized (players) {
-            for (int i = 0; i < players.size(); i++) {
-                if (i > 0) json.append(",");
-                json.append("\"").append(players.get(i)).append("\"");
-            }
-        }
-        json.append("]}");
-
-        broadcast(new Message(constants.GameConstants.MESSAGE_TYPE_S2C_ROOM_UPDATE, json.toString()));
+        String json = JsonBuilder.buildRoomUpdate(creator, getPlayers());
+        broadcast(new Message(constants.GameConstants.MESSAGE_TYPE_S2C_ROOM_UPDATE, json));
     }
 
     // Getters
