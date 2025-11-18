@@ -141,7 +141,31 @@ public class LobbyController {
     private void createLobbyUI() {
         mainRoot = new BorderPane();
         mainRoot.setPadding(new Insets(20));
-        mainRoot.setStyle(UIHelper.createGradientBackground("#2c3e50", "#34495e"));
+
+        // Set background image - with null check
+        try {
+            java.net.URL backgroundUrl = getClass().getResource("/assets/images/backgrounds/backgroundLeaderBoard.png");
+            if (backgroundUrl != null) {
+                String backgroundPath = backgroundUrl.toExternalForm();
+                mainRoot.setStyle(
+                    "-fx-background-image: url('" + backgroundPath + "');" +
+                    "-fx-background-size: cover;" +
+                    "-fx-background-position: center;" +
+                    "-fx-background-repeat: no-repeat;"
+                );
+            } else {
+                // Fallback to gradient background if image not found
+                System.err.println("Warning: Background image not found, using gradient fallback");
+                mainRoot.setStyle(
+                    "-fx-background-color: linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460);"
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading background image: " + e.getMessage());
+            mainRoot.setStyle(
+                "-fx-background-color: linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460);"
+            );
+        }
 
         if (inRoom) {
             showRoomView();
@@ -193,14 +217,24 @@ public class LobbyController {
         VBox titleBox = new VBox(10);
         titleBox.setAlignment(Pos.CENTER);
         titleBox.setPadding(new Insets(20));
+        titleBox.setStyle(
+            "-fx-background-color: rgba(0, 0, 0, 0.6);" +
+            "-fx-background-radius: 15px;" +
+            "-fx-border-color: rgba(255, 215, 0, 0.5);" +
+            "-fx-border-width: 2px;" +
+            "-fx-border-radius: 15px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 15, 0, 0, 5);"
+        );
 
         Text title = new Text("ROOM BROWSER");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 32));
-        title.setFill(Color.WHITE);
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+        title.setFill(Color.web("#FFD700")); // Gold color
+        title.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 5, 0, 0, 3);");
 
         Label subtitle = new Label("Choose a room to join or create your own");
-        subtitle.setFont(Font.font("Arial", 14));
-        subtitle.setTextFill(Color.web("#95a5a6"));
+        subtitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        subtitle.setTextFill(Color.web("#FFFFFF"));
+        subtitle.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 3, 0, 0, 2);");
 
         titleBox.getChildren().addAll(title, subtitle);
         return titleBox;
@@ -213,28 +247,40 @@ public class LobbyController {
         VBox listContainer = new VBox(15);
         listContainer.setAlignment(Pos.TOP_CENTER);
         listContainer.setPadding(new Insets(20));
+        listContainer.setStyle(
+            "-fx-background-color: rgba(0, 0, 0, 0.5);" +
+            "-fx-background-radius: 12px;" +
+            "-fx-border-color: rgba(52, 152, 219, 0.6);" +
+            "-fx-border-width: 2px;" +
+            "-fx-border-radius: 12px;"
+        );
 
         HBox headerBox = new HBox(20);
         headerBox.setAlignment(Pos.CENTER);
 
         Text roomsTitle = new Text("AVAILABLE ROOMS");
-        roomsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 20));
-        roomsTitle.setFill(Color.WHITE);
+        roomsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        roomsTitle.setFill(Color.web("#3498db"));
+        roomsTitle.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 4, 0, 0, 2);");
 
         headerBox.getChildren().addAll(roomsTitle);
 
         ScrollPane roomsScroll = new ScrollPane();
         roomsScroll.setPrefHeight(400);
         roomsScroll.setFitToWidth(true);
-        roomsScroll.setStyle("-fx-background-color: transparent;");
+        roomsScroll.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-background: transparent;"
+        );
 
         roomsListBox = new VBox(10);
         roomsListBox.setPadding(new Insets(10));
         roomsListBox.setAlignment(Pos.TOP_CENTER);
 
         Label noRoomsLabel = new Label("No rooms available. Create one!");
-        noRoomsLabel.setTextFill(Color.web("#95a5a6"));
-        noRoomsLabel.setFont(Font.font("Arial", 14));
+        noRoomsLabel.setTextFill(Color.web("#FFFFFF"));
+        noRoomsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        noRoomsLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 3, 0, 0, 2);");
         roomsListBox.getChildren().add(noRoomsLabel);
 
         roomsScroll.setContent(roomsListBox);
@@ -251,7 +297,31 @@ public class LobbyController {
         actions.setAlignment(Pos.CENTER);
         actions.setPadding(new Insets(20));
 
-        Button backButton = UIHelper.createButton("BACK TO MENU", UIHelper.DANGER_COLOR);
+        Button backButton = new Button("BACK TO MENU");
+        backButton.setPrefWidth(180);
+        backButton.setPrefHeight(50);
+        backButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        backButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #c0392b, #a93226);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        );
+        backButton.setOnMouseEntered(e -> backButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #e74c3c, #c0392b);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 15, 0, 0, 5);"
+        ));
+        backButton.setOnMouseExited(e -> backButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #c0392b, #a93226);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        ));
         backButton.setOnAction(e -> {
             stopAutoRefresh();
             if (onBackToMenu != null) {
@@ -259,7 +329,31 @@ public class LobbyController {
             }
         });
 
-        Button createRoomButton = UIHelper.createButton("CREATE ROOM", UIHelper.PRIMARY_COLOR);
+        Button createRoomButton = new Button("CREATE ROOM");
+        createRoomButton.setPrefWidth(180);
+        createRoomButton.setPrefHeight(50);
+        createRoomButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        createRoomButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        );
+        createRoomButton.setOnMouseEntered(e -> createRoomButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #2ecc71, #27ae60);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 15, 0, 0, 5);"
+        ));
+        createRoomButton.setOnMouseExited(e -> createRoomButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        ));
         createRoomButton.setOnAction(e -> {
             network.sendMessage(new Message(MESSAGE_TYPE_CREATE_ROOM, ""));
         });
@@ -275,10 +369,19 @@ public class LobbyController {
         VBox infoBox = new VBox(10);
         infoBox.setAlignment(Pos.CENTER);
         infoBox.setPadding(new Insets(20));
+        infoBox.setStyle(
+            "-fx-background-color: rgba(0, 0, 0, 0.6);" +
+            "-fx-background-radius: 15px;" +
+            "-fx-border-color: rgba(255, 215, 0, 0.5);" +
+            "-fx-border-width: 2px;" +
+            "-fx-border-radius: 15px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 15, 0, 0, 5);"
+        );
 
         Text title = new Text("GAME LOBBY");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 32));
-        title.setFill(Color.WHITE);
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+        title.setFill(Color.web("#FFD700"));
+        title.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 5, 0, 0, 3);");
 
         infoBox.getChildren().add(title);
         return infoBox;
@@ -291,10 +394,18 @@ public class LobbyController {
         VBox slotsContainer = new VBox(15);
         slotsContainer.setAlignment(Pos.CENTER);
         slotsContainer.setPadding(new Insets(20));
+        slotsContainer.setStyle(
+            "-fx-background-color: rgba(0, 0, 0, 0.5);" +
+            "-fx-background-radius: 12px;" +
+            "-fx-border-color: rgba(52, 152, 219, 0.6);" +
+            "-fx-border-width: 2px;" +
+            "-fx-border-radius: 12px;"
+        );
 
         Text playersTitle = new Text("PLAYERS");
-        playersTitle.setFont(Font.font("Arial", FontWeight.BOLD, 20));
-        playersTitle.setFill(Color.WHITE);
+        playersTitle.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        playersTitle.setFill(Color.web("#3498db"));
+        playersTitle.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 4, 0, 0, 2);");
 
         playerSlotsBox = new VBox(10);
         playerSlotsBox.setAlignment(Pos.CENTER);
@@ -317,22 +428,25 @@ public class LobbyController {
         slot.setAlignment(Pos.CENTER_LEFT);
         slot.setPadding(new Insets(15, 20, 15, 20));
         slot.setPrefWidth(350);
-        slot.setStyle("-fx-background-color: rgba(255, 255, 255, 0.12); " +
-                "-fx-background-radius: 10px; " +
-                "-fx-border-color: rgba(52, 152, 219, 0.3); " +
-                "-fx-border-radius: 10px; " +
-                "-fx-border-width: 2px; " +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 5, 0, 0, 2);");
+        slot.setStyle(
+            "-fx-background-color: rgba(30, 30, 30, 0.8);" +
+            "-fx-background-radius: 10px;" +
+            "-fx-border-color: rgba(52, 152, 219, 0.6);" +
+            "-fx-border-radius: 10px;" +
+            "-fx-border-width: 2px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 8, 0, 0, 3);"
+        );
 
         Label positionLabel = new Label("P" + (slotIndex + 1));
-        positionLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20));
-        positionLabel.setTextFill(Color.web("#3498db"));
-        positionLabel.setPrefWidth(40);
-        positionLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.5), 3, 0, 0, 1);");
+        positionLabel.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+        positionLabel.setTextFill(Color.web("#FFD700"));
+        positionLabel.setPrefWidth(50);
+        positionLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(255, 215, 0, 0.7), 4, 0, 0, 2);");
 
         Label playerLabel = new Label("--- Waiting ---");
-        playerLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
-        playerLabel.setTextFill(Color.web("#95a5a6"));
+        playerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        playerLabel.setTextFill(Color.web("#FFFFFF"));
+        playerLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
         playerLabels[slotIndex] = playerLabel;
 
         // Ready indicator (for future use)
@@ -354,22 +468,26 @@ public class LobbyController {
         VBox friendsSection = new VBox(15);
         friendsSection.setPadding(new Insets(20));
         friendsSection.setPrefWidth(300);
-        friendsSection.setStyle("-fx-background-color: rgba(0, 0, 0, 0.3); " +
-                "-fx-background-radius: 10px; " +
-                "-fx-border-color: rgba(255, 255, 255, 0.1); " +
-                "-fx-border-radius: 10px; " +
-                "-fx-border-width: 1px;");
+        friendsSection.setStyle(
+            "-fx-background-color: rgba(0, 0, 0, 0.5);" +
+            "-fx-background-radius: 12px;" +
+            "-fx-border-color: rgba(155, 89, 182, 0.6);" +
+            "-fx-border-radius: 12px;" +
+            "-fx-border-width: 2px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        );
 
         Text friendsTitle = new Text("FRIENDS");
-        friendsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-        friendsTitle.setFill(Color.WHITE);
-        friendsTitle.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 3, 0, 0, 1);");
+        friendsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        friendsTitle.setFill(Color.web("#9b59b6"));
+        friendsTitle.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 4, 0, 0, 2);");
 
         // Search users section
         VBox searchSection = new VBox(8);
         Label searchLabel = new Label("Find Friends");
-        searchLabel.setTextFill(Color.WHITE);
-        searchLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        searchLabel.setTextFill(Color.web("#FFFFFF"));
+        searchLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        searchLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
 
         HBox searchBox = new HBox(5);
         searchBox.setAlignment(Pos.CENTER);
@@ -377,10 +495,42 @@ public class LobbyController {
         TextField searchField = new TextField();
         searchField.setPromptText("Search username...");
         searchField.setPrefWidth(180);
+        searchField.setStyle(
+            "-fx-background-color: rgba(255, 255, 255, 0.15);" +
+            "-fx-text-fill: white;" +
+            "-fx-prompt-text-fill: rgba(255, 255, 255, 0.5);" +
+            "-fx-background-radius: 5px;" +
+            "-fx-border-color: rgba(255, 255, 255, 0.3);" +
+            "-fx-border-radius: 5px;" +
+            "-fx-padding: 8px;" +
+            "-fx-font-size: 14px;"
+        );
 
         Button searchButton = new Button("🔍");
-        searchButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
-                "-fx-font-size: 14px; -fx-cursor: hand;");
+        searchButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #3498db, #2980b9);" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 16px;" +
+            "-fx-cursor: hand;" +
+            "-fx-background-radius: 5px;" +
+            "-fx-padding: 8px 15px;"
+        );
+        searchButton.setOnMouseEntered(e -> searchButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #5dade2, #3498db);" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 16px;" +
+            "-fx-cursor: hand;" +
+            "-fx-background-radius: 5px;" +
+            "-fx-padding: 8px 15px;"
+        ));
+        searchButton.setOnMouseExited(e -> searchButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #3498db, #2980b9);" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 16px;" +
+            "-fx-cursor: hand;" +
+            "-fx-background-radius: 5px;" +
+            "-fx-padding: 8px 15px;"
+        ));
         searchButton.setOnAction(e -> {
             String searchTerm = searchField.getText().trim();
             if (searchTerm.length() >= 2) {
@@ -394,43 +544,66 @@ public class LobbyController {
         VBox searchResultsBox = new VBox(5);
         searchResultsBox.setVisible(false);
         searchResultsBox.setManaged(false);
-        searchResultsBox.setStyle("-fx-background-color: rgba(255,255,255,0.1); " +
-                "-fx-padding: 10px; -fx-background-radius: 5px;");
+        searchResultsBox.setStyle(
+            "-fx-background-color: rgba(30, 30, 30, 0.8);" +
+            "-fx-padding: 10px;" +
+            "-fx-background-radius: 8px;" +
+            "-fx-border-color: rgba(52, 152, 219, 0.4);" +
+            "-fx-border-radius: 8px;" +
+            "-fx-border-width: 1px;"
+        );
 
         searchSection.getChildren().addAll(searchLabel, searchBox, searchResultsBox);
 
         // Friend requests section
         VBox requestsSection = new VBox(8);
         Label requestsLabel = new Label("Friend Requests");
-        requestsLabel.setTextFill(Color.WHITE);
-        requestsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        requestsLabel.setTextFill(Color.web("#FFFFFF"));
+        requestsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        requestsLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
 
         VBox requestsListBox = new VBox(5);
-        requestsListBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); " +
-                "-fx-padding: 8px; -fx-background-radius: 5px;");
+        requestsListBox.setStyle(
+            "-fx-background-color: rgba(30, 30, 30, 0.6);" +
+            "-fx-padding: 10px;" +
+            "-fx-background-radius: 8px;" +
+            "-fx-border-color: rgba(155, 89, 182, 0.4);" +
+            "-fx-border-radius: 8px;" +
+            "-fx-border-width: 1px;"
+        );
 
         requestsSection.getChildren().addAll(requestsLabel, requestsListBox);
 
         // Friends list
         Label myFriendsLabel = new Label("My Friends");
-        myFriendsLabel.setTextFill(Color.WHITE);
-        myFriendsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        myFriendsLabel.setTextFill(Color.web("#FFFFFF"));
+        myFriendsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        myFriendsLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
 
         ScrollPane friendsScroll = new ScrollPane();
         friendsScroll.setPrefHeight(200);
         friendsScroll.setFitToWidth(true);
-        friendsScroll.setStyle("-fx-background-color: transparent;");
+        friendsScroll.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-background: transparent;"
+        );
 
         friendsListBox = new VBox(5);
         friendsListBox.setPadding(new Insets(10));
-        friendsListBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); " +
-                "-fx-background-radius: 5px;");
+        friendsListBox.setStyle(
+            "-fx-background-color: rgba(255,255,255,0.1);" +
+            "-fx-background-radius: 8px;" +
+            "-fx-border-color: rgba(255, 255, 255, 0.2);" +
+            "-fx-border-radius: 8px;" +
+            "-fx-border-width: 1px;"
+        );
 
         friendsScroll.setContent(friendsListBox);
 
         Label noFriendsLabel = new Label("No friends yet");
-        noFriendsLabel.setTextFill(Color.web("#95a5a6"));
-        noFriendsLabel.setFont(Font.font("Arial", 12));
+        noFriendsLabel.setTextFill(Color.web("#FFFFFF"));
+        noFriendsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        noFriendsLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
         friendsListBox.getChildren().add(noFriendsLabel);
 
         friendsSection.getChildren().addAll(friendsTitle, searchSection,
@@ -453,14 +626,62 @@ public class LobbyController {
         actions.setAlignment(Pos.CENTER);
         actions.setPadding(new Insets(20));
 
-        Button leaveButton = UIHelper.createButton("LEAVE ROOM", UIHelper.DANGER_COLOR);
+        Button leaveButton = new Button("LEAVE ROOM");
+        leaveButton.setPrefWidth(180);
+        leaveButton.setPrefHeight(50);
+        leaveButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        leaveButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #c0392b, #a93226);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        );
+        leaveButton.setOnMouseEntered(e -> leaveButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #e74c3c, #c0392b);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 15, 0, 0, 5);"
+        ));
+        leaveButton.setOnMouseExited(e -> leaveButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #c0392b, #a93226);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        ));
         leaveButton.setOnAction(e -> {
             stopAutoRefresh();
             network.sendMessage(new Message(MESSAGE_TYPE_LEAVE_ROOM, currentRoomId));
             show(currentUsername, null, new ArrayList<>());
         });
 
-        startGameButton = UIHelper.createButton("START GAME", UIHelper.PRIMARY_COLOR);
+        startGameButton = new Button("START GAME");
+        startGameButton.setPrefWidth(180);
+        startGameButton.setPrefHeight(50);
+        startGameButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        startGameButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        );
+        startGameButton.setOnMouseEntered(e -> startGameButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #2ecc71, #27ae60);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 15, 0, 0, 5);"
+        ));
+        startGameButton.setOnMouseExited(e -> startGameButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        ));
         startGameButton.setOnAction(e -> {
             stopAutoRefresh();
             network.sendMessage(new Message(MESSAGE_TYPE_START_GAME, currentRoomId));
@@ -495,12 +716,15 @@ public class LobbyController {
             if (i < playersInRoom.size()) {
                 String playerName = playersInRoom.get(i);
                 label.setText(playerName);
-                label.setTextFill(Color.WHITE);
-
                 if (playerName.equals(currentUsername)) {
-                    label.setStyle("-fx-font-weight: bold; -fx-text-fill: #f39c12;");
+                    label.setTextFill(Color.web("#f39c12"));
+                    label.setStyle(
+                        "-fx-font-weight: bold;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(243, 156, 18, 0.6), 4, 0, 0, 2);"
+                    );
                 } else {
-                    label.setStyle("");
+                    label.setTextFill(Color.WHITE);
+                    label.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
                 }
 
                 // Add kick button if current user is host and this player is not the host
@@ -544,8 +768,12 @@ public class LobbyController {
                 }
             } else {
                 label.setText("--- Waiting ---");
-                label.setTextFill(Color.web("#95a5a6"));
-                label.setStyle("");
+                label.setTextFill(Color.web("#FFFFFF"));
+                label.setStyle(
+                    "-fx-font-style: italic;" +
+                    "-fx-opacity: 0.6;" +
+                    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);"
+                );
             }
         }
 
@@ -590,8 +818,9 @@ public class LobbyController {
 
         if (availableRooms.isEmpty()) {
             Label noRooms = new Label("No rooms available. Create one!");
-            noRooms.setTextFill(Color.web("#95a5a6"));
-            noRooms.setFont(Font.font("Arial", 14));
+            noRooms.setTextFill(Color.web("#FFFFFF"));
+            noRooms.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+            noRooms.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 3, 0, 0, 2);");
             roomsListBox.getChildren().add(noRooms);
             return;
         }
@@ -610,21 +839,26 @@ public class LobbyController {
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(15, 20, 15, 20));
         item.setPrefWidth(600);
-        item.setStyle("-fx-background-color: rgba(255, 255, 255, 0.1); " +
-                "-fx-background-radius: 10px; " +
-                "-fx-border-color: #3498db; " +
-                "-fx-border-radius: 10px; " +
-                "-fx-border-width: 2px;");
+        item.setStyle(
+            "-fx-background-color: rgba(30, 30, 30, 0.8);" +
+            "-fx-background-radius: 10px;" +
+            "-fx-border-color: rgba(52, 152, 219, 0.7);" +
+            "-fx-border-radius: 10px;" +
+            "-fx-border-width: 2px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 8, 0, 0, 3);"
+        );
 
         VBox infoBox = new VBox(5);
 
         Label hostLabel = new Label("Host: " + room.get("creator"));
-        hostLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        hostLabel.setTextFill(Color.WHITE);
+        hostLabel.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        hostLabel.setTextFill(Color.web("#FFD700"));
+        hostLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
 
         Label detailsLabel = new Label("Players: " + room.get("playerCount") + "/" + room.get("maxPlayers"));
-        detailsLabel.setFont(Font.font("Arial", 12));
-        detailsLabel.setTextFill(Color.web("#95a5a6"));
+        detailsLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        detailsLabel.setTextFill(Color.web("#FFFFFF"));
+        detailsLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
 
         infoBox.getChildren().addAll(hostLabel, detailsLabel);
 
@@ -632,14 +866,50 @@ public class LobbyController {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button joinButton = new Button("Request Join");
-        joinButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
-                "-fx-font-size: 14px; -fx-cursor: hand; " +
-                "-fx-padding: 10px 20px;");
+        joinButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        joinButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 8px;" +
+            "-fx-cursor: hand;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 5, 0, 0, 2);"
+        );
+        joinButton.setOnMouseEntered(e -> {
+            if (!joinButton.isDisabled()) {
+                joinButton.setStyle(
+                    "-fx-background-color: linear-gradient(to bottom, #2ecc71, #27ae60);" +
+                    "-fx-text-fill: white;" +
+                    "-fx-background-radius: 8px;" +
+                    "-fx-cursor: hand;" +
+                    "-fx-padding: 10px 20px;" +
+                    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 8, 0, 0, 3);"
+                );
+            }
+        });
+        joinButton.setOnMouseExited(e -> {
+            if (!joinButton.isDisabled()) {
+                joinButton.setStyle(
+                    "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+                    "-fx-text-fill: white;" +
+                    "-fx-background-radius: 8px;" +
+                    "-fx-cursor: hand;" +
+                    "-fx-padding: 10px 20px;" +
+                    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 5, 0, 0, 2);"
+                );
+            }
+        });
         joinButton.setOnAction(e -> {
             String roomId = room.get("roomId");
             network.sendMessage(new Message(MESSAGE_TYPE_REQUEST_JOIN, roomId));
             joinButton.setDisable(true);
             joinButton.setText("Requested...");
+            joinButton.setStyle(
+                "-fx-background-color: #7f8c8d;" +
+                "-fx-text-fill: white;" +
+                "-fx-background-radius: 8px;" +
+                "-fx-padding: 10px 20px;"
+            );
         });
 
         item.getChildren().addAll(infoBox, spacer, joinButton);
@@ -839,7 +1109,9 @@ public class LobbyController {
 
         if (results.isEmpty()) {
             Label noResults = new Label("No users found");
-            noResults.setTextFill(Color.web("#95a5a6"));
+            noResults.setTextFill(Color.web("#FFFFFF"));
+            noResults.setFont(Font.font("Arial", FontWeight.BOLD, 13));
+            noResults.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
             searchResultsBox.getChildren().add(noResults);
         } else {
             for (String username : results) {
@@ -858,24 +1130,64 @@ public class LobbyController {
     private HBox createSearchResultItem(String username) {
         HBox item = new HBox(10);
         item.setAlignment(Pos.CENTER_LEFT);
-        item.setPadding(new Insets(5));
-        item.setStyle("-fx-background-color: rgba(255,255,255,0.1); " +
-                "-fx-background-radius: 3px;");
+        item.setPadding(new Insets(8, 10, 8, 10));
+        item.setStyle(
+            "-fx-background-color: rgba(30, 30, 30, 0.7);" +
+            "-fx-background-radius: 5px;" +
+            "-fx-border-color: rgba(52, 152, 219, 0.4);" +
+            "-fx-border-radius: 5px;" +
+            "-fx-border-width: 1px;"
+        );
 
         Label nameLabel = new Label(username);
         nameLabel.setTextFill(Color.WHITE);
-        nameLabel.setFont(Font.font("Arial", 13));
+        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        nameLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button addButton = new Button("➕");
-        addButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
-                "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 3px 8px;");
+        addButton.setFont(Font.font(14));
+        addButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+            "-fx-text-fill: white;" +
+            "-fx-cursor: hand;" +
+            "-fx-background-radius: 5px;" +
+            "-fx-padding: 5px 10px;"
+        );
+        addButton.setOnMouseEntered(e -> {
+            if (!addButton.isDisabled()) {
+                addButton.setStyle(
+                    "-fx-background-color: linear-gradient(to bottom, #2ecc71, #27ae60);" +
+                    "-fx-text-fill: white;" +
+                    "-fx-cursor: hand;" +
+                    "-fx-background-radius: 5px;" +
+                    "-fx-padding: 5px 10px;"
+                );
+            }
+        });
+        addButton.setOnMouseExited(e -> {
+            if (!addButton.isDisabled()) {
+                addButton.setStyle(
+                    "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+                    "-fx-text-fill: white;" +
+                    "-fx-cursor: hand;" +
+                    "-fx-background-radius: 5px;" +
+                    "-fx-padding: 5px 10px;"
+                );
+            }
+        });
         addButton.setOnAction(e -> {
             network.sendMessage(new Message(MESSAGE_TYPE_SEND_FRIEND_REQUEST, username));
             addButton.setDisable(true);
             addButton.setText("✓");
+            addButton.setStyle(
+                "-fx-background-color: #7f8c8d;" +
+                "-fx-text-fill: white;" +
+                "-fx-background-radius: 5px;" +
+                "-fx-padding: 5px 10px;"
+            );
         });
 
         item.getChildren().addAll(nameLabel, spacer, addButton);
@@ -995,12 +1307,14 @@ public class LobbyController {
         HBox item = new HBox(12);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12, 15, 12, 15));
-        item.setStyle("-fx-background-color: rgba(255, 255, 255, 0.15); " +
-                "-fx-background-radius: 8px; " +
-                "-fx-border-color: rgba(255, 255, 255, 0.2); " +
-                "-fx-border-radius: 8px; " +
-                "-fx-border-width: 1px; " +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);");
+        item.setStyle(
+            "-fx-background-color: rgba(30, 30, 30, 0.7);" +
+            "-fx-background-radius: 8px;" +
+            "-fx-border-color: rgba(155, 89, 182, 0.5);" +
+            "-fx-border-radius: 8px;" +
+            "-fx-border-width: 1.5px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 6, 0, 0, 2);"
+        );
 
         String username = friend.get("username");
         boolean isOnline = "true".equals(friend.get("online"));
@@ -1008,16 +1322,16 @@ public class LobbyController {
         // Status indicator - larger and more visible
         Label statusLabel = new Label("●");
         statusLabel.setTextFill(isOnline ? Color.web("#27ae60") : Color.web("#95a5a6"));
-        statusLabel.setFont(Font.font(16));
+        statusLabel.setFont(Font.font(18));
         statusLabel.setStyle("-fx-effect: dropshadow(gaussian, " +
-            (isOnline ? "rgba(39, 174, 96, 0.8)" : "rgba(149, 165, 166, 0.5)") +
-            ", 4, 0.5, 0, 0);");
+            (isOnline ? "rgba(39, 174, 96, 0.9)" : "rgba(149, 165, 166, 0.6)") +
+            ", 6, 0.7, 0, 0);");
 
         // Username - larger, bold, better contrast
         Label nameLabel = new Label(username);
         nameLabel.setTextFill(Color.WHITE);
         nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        nameLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 2, 0, 0, 1);");
+        nameLabel.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 3, 0, 0, 2);");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
