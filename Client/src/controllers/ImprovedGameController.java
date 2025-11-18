@@ -936,7 +936,20 @@ public class ImprovedGameController {
         stopAllTimers();
 
         this.gameOverReason = message.getData().toString();
-        // Show option to go back to menu
-        Platform.runLater(this::showGameOverScreen);
+
+        // Nếu đối thủ rời game, đợi 200ms để đảm bảo nhận được game state update
+        if ("OPPONENT_LEFT".equals(gameOverReason)) {
+            new Thread(() -> {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                Platform.runLater(this::showGameOverScreen);
+            }).start();
+        } else {
+            // Show option to go back to menu
+            Platform.runLater(this::showGameOverScreen);
+        }
     }
 }

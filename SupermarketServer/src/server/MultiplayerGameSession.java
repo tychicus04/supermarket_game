@@ -100,6 +100,23 @@ public class MultiplayerGameSession {
         gameActive = false;
         if (gameTimerTask != null) gameTimerTask.cancel(false);
         if (scheduler != null) scheduler.shutdown();
+
+        // Nếu có người chơi rời giữa chừng, set điểm của họ về 0
+        if (leavingPlayer != null && reason != null && reason.equals("OPPONENT_LEFT")) {
+            scores.put(leavingPlayer, 0);
+            System.out.println("Set score to 0 for leaving player: " + leavingPlayer);
+
+            // Broadcast game state ngay lập tức để client nhận được điểm cập nhật
+            broadcastGameState();
+
+            // Đợi một chút để đảm bảo message được gửi đi
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
         saveScoresToDatabase();
         String payload;
         if (reason != null) {
