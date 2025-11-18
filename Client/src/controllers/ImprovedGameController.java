@@ -482,6 +482,10 @@ public class ImprovedGameController {
         gameEnded = true;
         stopAllTimers();
 
+        if (gameOverReason == null) {
+            gameOverReason = "TIMEOUT";
+        }
+
         // Hiển thị màn hình game over
         Platform.runLater(this::showGameOverScreen);
     }
@@ -511,24 +515,32 @@ public class ImprovedGameController {
         String titleText;
         Color titleColor;
 
-        if (gameOverReason != null && gameOverReason.equals("OPPONENT_LEFT")) {
-            titleText = "🏆 OPPONENT LEFT!";
-            titleColor = Color.web("#f39c12"); // Màu vàng/cam chiến thắng
-            soundManager.playGameOver(); // Chơi âm thanh chiến thắng
+        if (!isSinglePlayer && gameOverReason != null && gameOverReason.equals("OPPONENT_LEFT")) {
+            titleText = "OPPONENT LEFT!";
+            titleColor = Color.web("#f39c12"); // Cam/Vàng
+            soundManager.playGameOver();
         }
-        else{
+        // Ưu tiên 2: Chế độ chơi đơn -> Luôn là TIME UP khi hết giờ
+        else if (isSinglePlayer) {
+            titleText = "⏰ TIME'S UP!";
+            titleColor = Color.web("#3498db"); // Xanh dương
+            soundManager.playGameOver();
+        }
+        // Ưu tiên 3: Multiplayer so sánh điểm
+        else {
             if (myScore > opponentScore) {
-            titleText = "🎉 YOU WIN! 🎉";
-            titleColor = Color.web("#2ecc71"); // Green
-            soundManager.playGameOver(); // (Hoặc âm thanh chiến thắng)
-        } else if (myScore < opponentScore) {
-            titleText = "😥 YOU LOSE 😥";
-            titleColor = Color.web("#e74c3c"); // Red
-            soundManager.playGameOver(); // (Âm thanh thất bại)
-        } else {
-            titleText = "🤝 IT'S A DRAW! 🤝";
-            titleColor = Color.web("#f39c12"); // Orange
-        }}
+                titleText = "YOU WIN!";
+                titleColor = Color.web("#2ecc71"); // Xanh lá
+                soundManager.playGameOver();
+            } else if (myScore < opponentScore) {
+                titleText = "YOU LOSE";
+                titleColor = Color.web("#e74c3c"); // Đỏ
+                soundManager.playGameOver();
+            } else {
+                titleText = "IT'S A DRAW!";
+                titleColor = Color.web("#f39c12"); // Cam
+            }
+        }
 
         Label gameOverTitle = new Label(titleText);
         gameOverTitle.setFont(Font.font("Arial", 60));
