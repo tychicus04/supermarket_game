@@ -179,15 +179,27 @@ public class Main extends Application {
                     }
                     break;
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_SENT:
+                    if (lobbyController != null) {
+                        lobbyController.handleFriendRequestSent(message);
+                    }
+                    break;
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_FAIL:
+                    if (lobbyController != null) {
+                        lobbyController.handleFriendRequestFailed(message);
+                    }
+                    break;
                 case MESSAGE_TYPE_S2C_INVITE_SENT:
                     break;
                 case MESSAGE_TYPE_S2C_FRIEND_REQUEST_RECEIVED:
                     if (lobbyController != null) {
-                        networkManager.sendMessage(new models.Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
+                        lobbyController.handleFriendRequestReceived(message);
                     }
                     break;
                 case MESSAGE_TYPE_S2C_FRIEND_ACCEPTED:
+                    if (lobbyController != null) {
+                        lobbyController.handleFriendAccepted(message);
+                    }
+                    break;
                 case MESSAGE_TYPE_S2C_FRIEND_REJECTED:
                 case MESSAGE_TYPE_S2C_FRIEND_REMOVED:
                     if (lobbyController != null) {

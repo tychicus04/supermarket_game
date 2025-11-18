@@ -44,6 +44,10 @@ public class LobbyController {
     private List<Map<String, String>> friendsList;
     private List<Map<String, String>> availableRooms;
 
+    // Track sent requests and received requests
+    private List<String> sentFriendRequests;
+    private List<String> receivedFriendRequests;
+
     private Timeline friendsRefreshTimer;
     private Timeline roomsRefreshTimer;
 
@@ -71,6 +75,8 @@ public class LobbyController {
         this.playersInRoom = new ArrayList<>();
         this.friendsList = new ArrayList<>();
         this.availableRooms = new ArrayList<>();
+        this.sentFriendRequests = new ArrayList<>();
+        this.receivedFriendRequests = new ArrayList<>();
         this.playerLabels = new Label[2];
         this.playerSlots = new HBox[2];
     }
@@ -1108,11 +1114,33 @@ public class LobbyController {
         searchResultsBox.getChildren().clear();
 
         if (results.isEmpty()) {
+            // Create a more visible "no results" message
+            VBox noResultsBox = new VBox(10);
+            noResultsBox.setAlignment(Pos.CENTER);
+            noResultsBox.setPadding(new Insets(20));
+            noResultsBox.setStyle(
+                "-fx-background-color: rgba(231, 76, 60, 0.2);" +
+                "-fx-border-color: rgba(231, 76, 60, 0.5);" +
+                "-fx-border-width: 2px;" +
+                "-fx-border-radius: 8px;" +
+                "-fx-background-radius: 8px;"
+            );
+
+            Label noResultsIcon = new Label("🔍");
+            noResultsIcon.setFont(Font.font(32));
+
             Label noResults = new Label("No users found");
             noResults.setTextFill(Color.web("#FFFFFF"));
-            noResults.setFont(Font.font("Arial", FontWeight.BOLD, 13));
+            noResults.setFont(Font.font("Arial", FontWeight.BOLD, 16));
             noResults.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 2, 0, 0, 1);");
-            searchResultsBox.getChildren().add(noResults);
+
+            Label hint = new Label("Try searching with a different username");
+            hint.setTextFill(Color.web("#CCCCCC"));
+            hint.setFont(Font.font("Arial", 12));
+            hint.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 1, 0, 0, 1);");
+
+            noResultsBox.getChildren().addAll(noResultsIcon, noResults, hint);
+            searchResultsBox.getChildren().add(noResultsBox);
         } else {
             for (String username : results) {
                 HBox userItem = createSearchResultItem(username);
@@ -1147,48 +1175,96 @@ public class LobbyController {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        // Check if already friend
+        boolean isAlreadyFriend = friendsList.stream()
+            .anyMatch(f -> username.equals(f.get("username")));
+
+        // Check if already sent request
+        boolean hasSentRequest = sentFriendRequests.contains(username);
+
+        // Check if received request from this user
+        boolean hasReceivedRequest = receivedFriendRequests.contains(username);
+
         Button addButton = new Button("➕");
         addButton.setFont(Font.font(14));
-        addButton.setStyle(
-            "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
-            "-fx-text-fill: white;" +
-            "-fx-cursor: hand;" +
-            "-fx-background-radius: 5px;" +
-            "-fx-padding: 5px 10px;"
-        );
-        addButton.setOnMouseEntered(e -> {
-            if (!addButton.isDisabled()) {
-                addButton.setStyle(
-                    "-fx-background-color: linear-gradient(to bottom, #2ecc71, #27ae60);" +
-                    "-fx-text-fill: white;" +
-                    "-fx-cursor: hand;" +
-                    "-fx-background-radius: 5px;" +
-                    "-fx-padding: 5px 10px;"
-                );
-            }
-        });
-        addButton.setOnMouseExited(e -> {
-            if (!addButton.isDisabled()) {
-                addButton.setStyle(
-                    "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
-                    "-fx-text-fill: white;" +
-                    "-fx-cursor: hand;" +
-                    "-fx-background-radius: 5px;" +
-                    "-fx-padding: 5px 10px;"
-                );
-            }
-        });
-        addButton.setOnAction(e -> {
-            network.sendMessage(new Message(MESSAGE_TYPE_SEND_FRIEND_REQUEST, username));
+
+        // Disable and change appearance if already friend or has pending request
+        if (isAlreadyFriend) {
+            addButton.setText("✓ Friend");
             addButton.setDisable(true);
-            addButton.setText("✓");
             addButton.setStyle(
                 "-fx-background-color: #7f8c8d;" +
                 "-fx-text-fill: white;" +
                 "-fx-background-radius: 5px;" +
                 "-fx-padding: 5px 10px;"
             );
-        });
+        } else if (hasSentRequest) {
+            addButton.setText("Pending");
+            addButton.setDisable(true);
+            addButton.setStyle(
+                "-fx-background-color: #95a5a6;" +
+                "-fx-text-fill: white;" +
+                "-fx-background-radius: 5px;" +
+                "-fx-padding: 5px 10px;"
+            );
+        } else if (hasReceivedRequest) {
+            addButton.setText("Accept");
+            addButton.setStyle(
+                "-fx-background-color: linear-gradient(to bottom, #3498db, #2980b9);" +
+                "-fx-text-fill: white;" +
+                "-fx-cursor: hand;" +
+                "-fx-background-radius: 5px;" +
+                "-fx-padding: 5px 10px;"
+            );
+            addButton.setOnAction(e -> {
+                network.sendMessage(new Message(MESSAGE_TYPE_ACCEPT_FRIEND, username));
+                addButton.setDisable(true);
+                addButton.setText("✓");
+            });
+        } else {
+            // Normal add friend button
+            addButton.setStyle(
+                "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+                "-fx-text-fill: white;" +
+                "-fx-cursor: hand;" +
+                "-fx-background-radius: 5px;" +
+                "-fx-padding: 5px 10px;"
+            );
+            addButton.setOnMouseEntered(e -> {
+                if (!addButton.isDisabled()) {
+                    addButton.setStyle(
+                        "-fx-background-color: linear-gradient(to bottom, #2ecc71, #27ae60);" +
+                        "-fx-text-fill: white;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-background-radius: 5px;" +
+                        "-fx-padding: 5px 10px;"
+                    );
+                }
+            });
+            addButton.setOnMouseExited(e -> {
+                if (!addButton.isDisabled()) {
+                    addButton.setStyle(
+                        "-fx-background-color: linear-gradient(to bottom, #27ae60, #229954);" +
+                        "-fx-text-fill: white;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-background-radius: 5px;" +
+                        "-fx-padding: 5px 10px;"
+                    );
+                }
+            });
+            addButton.setOnAction(e -> {
+                network.sendMessage(new Message(MESSAGE_TYPE_SEND_FRIEND_REQUEST, username));
+                sentFriendRequests.add(username); // Track sent request
+                addButton.setDisable(true);
+                addButton.setText("Pending");
+                addButton.setStyle(
+                    "-fx-background-color: #95a5a6;" +
+                    "-fx-text-fill: white;" +
+                    "-fx-background-radius: 5px;" +
+                    "-fx-padding: 5px 10px;"
+                );
+            });
+        }
 
         item.getChildren().addAll(nameLabel, spacer, addButton);
         return item;
@@ -1205,6 +1281,10 @@ public class LobbyController {
         String json = message.getData();
         List<String> requests = parseSimpleStringArray(json);
 
+        // Update received requests list
+        receivedFriendRequests.clear();
+        receivedFriendRequests.addAll(requests);
+
         friendRequestsBox.getChildren().clear();
 
         if (requests.isEmpty()) {
@@ -1218,6 +1298,70 @@ public class LobbyController {
                 friendRequestsBox.getChildren().add(requestItem);
             }
         }
+    }
+
+    /**
+     * Handle friend request sent successfully
+     */
+    public void handleFriendRequestSent(Message message) {
+        // Already tracked in sentFriendRequests list when button clicked
+        System.out.println("Friend request sent: " + message.getData());
+    }
+
+    /**
+     * Handle friend request failed
+     */
+    public void handleFriendRequestFailed(Message message) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Friend Request Failed");
+            alert.setHeaderText(null);
+            alert.setContentText(message.getData());
+            alert.showAndWait();
+        });
+    }
+
+    /**
+     * Handle received friend request from another user
+     */
+    public void handleFriendRequestReceived(Message message) {
+        String fromUser = message.getData();
+        if (!receivedFriendRequests.contains(fromUser)) {
+            receivedFriendRequests.add(fromUser);
+        }
+
+        // Refresh friend requests list
+        network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
+
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Friend Request");
+            alert.setHeaderText(null);
+            alert.setContentText(fromUser + " sent you a friend request!");
+            alert.showAndWait();
+        });
+    }
+
+    /**
+     * Handle friend request accepted
+     */
+    public void handleFriendAccepted(Message message) {
+        String data = message.getData();
+
+        // Remove from sent requests if we sent it
+        sentFriendRequests.removeIf(username -> data.contains(username));
+
+        // Refresh friends list
+        network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIENDS, ""));
+        network.sendMessage(new Message(MESSAGE_TYPE_GET_FRIEND_REQUESTS, ""));
+
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Friend Added");
+            alert.setHeaderText(null);
+            alert.setContentText(data);
+            alert.showAndWait();
+        });
     }
 
     /**
