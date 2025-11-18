@@ -89,7 +89,7 @@ public class MenuController {
                         "-fx-stroke-width: 4px;");
 
         // Tạo BUTTON Single Player theo cùng class với các nút khác để đồng nhất style
-        Button singleBtn = new Button("SINGLE PLAYER");
+        Button singleBtn = new Button("PRACTICE");
         singleBtn.getStyleClass().addAll("pixel-menu-btn", "btn-single");
         singleBtn.setOnAction(e -> {
             soundManager.play("menu_button");
@@ -97,7 +97,7 @@ public class MenuController {
         });
 
         // Multiplayer button - purple
-        Button multiBtn = new Button("MULTIPLAYER");
+        Button multiBtn = new Button("PLAY ONLINE");
         multiBtn.getStyleClass().addAll("pixel-menu-btn", "btn-multi");
         multiBtn.setOnAction(e -> {
             soundManager.play("menu_button");
