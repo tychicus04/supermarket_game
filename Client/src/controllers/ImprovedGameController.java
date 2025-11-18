@@ -98,6 +98,9 @@ public class ImprovedGameController {
     private int currentSequenceLength = 0; // Độ dài order hiện tại
     private String currentRoomId;
 
+    // ====== THÊM MỚI: Map lưu trữ các VBox cells để highlight ======
+    private Map<String, VBox> itemCells = new HashMap<>();
+
 
     // Constructor
     public ImprovedGameController(Stage stage, Runnable onBackToMenu, Runnable onBackToRoom, Consumer<Message> onSendMessage) {
@@ -124,11 +127,11 @@ public class ImprovedGameController {
         Image bgImage = AssetManager.getImage("bg_game");
         if (bgImage != null) {
             BackgroundImage background = new BackgroundImage(
-                bgImage,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundPosition.CENTER,
-                new BackgroundSize(100, 100, true, true, false, true)
+                    bgImage,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundPosition.CENTER,
+                    new BackgroundSize(100, 100, true, true, false, true)
             );
             root.setBackground(new Background(background));
         }
@@ -138,19 +141,34 @@ public class ImprovedGameController {
         title.setTextFill(Color.WHITE);
         title.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0, 0, 2);");
 
-        HBox scoreBox = new HBox(24);
+        // ====== THÊM MỚI: Fancy Score Display ======
+        HBox scoreBox = new HBox(20);
         scoreBox.setAlignment(Pos.CENTER);
-        scoreLabel = mkTag("Your Score: 0");
-        opponentScoreLabel = mkTag("Opponent: 0");
-        timeLabel = mkTag("Time/Req: 5.0s");
+        scoreBox.setPadding(new Insets(10, 0, 10, 0));
 
-        // Thêm game timer (thời gian còn lại của màn chơi)
+        // Your Score - Blue gradient with trophy icon
+        VBox yourScoreBox = createFancyScoreBox("🏆", "YOUR SCORE", "0", "#3498db", "#2980b9");
+
+        // Opponent Score - Red gradient with vs icon
+        VBox opponentScoreBox = createFancyScoreBox("⚔", "OPPONENT", "0", "#e74c3c", "#c0392b");
+
+        // Time label - simpler style
+        timeLabel = new Label("⏰ Time/Req: 5.0s");
+        timeLabel.setFont(Font.font("Arial", 14));
+        timeLabel.setTextFill(Color.WHITE);
+        timeLabel.setStyle("-fx-background-color: rgba(52, 73, 94, 0.9); -fx-padding: 8 15; -fx-background-radius: 8;");
+
+        // Game timer
         gameTimeLabel = new Label("⏱️ Time: 1:00");
-        gameTimeLabel.setFont(Font.font(20));
+        gameTimeLabel.setFont(Font.font("Arial", 16));
         gameTimeLabel.setTextFill(Color.WHITE);
-        gameTimeLabel.setStyle("-fx-font-weight: bold; -fx-background-color: rgba(231, 76, 60, 0.8); -fx-padding: 5 15; -fx-background-radius: 10;");
+        gameTimeLabel.setStyle("-fx-font-weight: bold; -fx-background-color: rgba(231, 76, 60, 0.8); -fx-padding: 8 15; -fx-background-radius: 8;");
 
-        scoreBox.getChildren().addAll(scoreLabel, opponentScoreLabel, timeLabel, gameTimeLabel);
+        scoreBox.getChildren().addAll(yourScoreBox, opponentScoreBox, timeLabel, gameTimeLabel);
+
+        // Extract labels for later updates
+        scoreLabel = (Label) yourScoreBox.getChildren().get(1); // Score value label
+        opponentScoreLabel = (Label) opponentScoreBox.getChildren().get(1);
 
         // Load customer image - bắt đầu với neutral (chuyển lên trên)
         customerImage = new ImageView();
@@ -163,13 +181,13 @@ public class ImprovedGameController {
         customerBox.setAlignment(Pos.CENTER);
         customerBox.setPadding(new Insets(10));
         customerBox.setStyle(
-            "-fx-background-color: #ffffff; " +
-            "-fx-border-color: #e74c3c; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-radius: 10; " +
-            "-fx-background-radius: 10; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
+                "-fx-background-color: #ffffff; " +
+                        "-fx-border-color: #e74c3c; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-radius: 10; " +
+                        "-fx-background-radius: 10; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
 
         Label customerTitle = new Label("🎯 CUSTOMER");
@@ -189,13 +207,13 @@ public class ImprovedGameController {
         requestLabel.setAlignment(Pos.CENTER);
         // Pixel-style border with retro gaming colors
         requestLabel.setStyle(
-            "-fx-font-weight: bold; " +
-            "-fx-background-color: #fef9e7; " +
-            "-fx-border-color: #34495e; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-insets: 0; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
+                "-fx-font-weight: bold; " +
+                        "-fx-background-color: #fef9e7; " +
+                        "-fx-border-color: #34495e; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-insets: 0; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
 
         // HBox để đặt customer và order list cạnh nhau
@@ -215,6 +233,7 @@ public class ImprovedGameController {
                 String name = ITEM_MATRIX[r][c];
                 VBox cell = mkItemCell(id, name);
                 grid.add(cell, c, r);
+                itemCells.put(name, cell); // ====== THÊM MỚI: Lưu cell để có thể highlight sau ======
                 id++;
             }
         }
@@ -326,6 +345,7 @@ public class ImprovedGameController {
             flashRequestProgress();
             setCustomerEmotion("happy"); // Customer vui
             soundManager.playPickup();
+            highlightCell(got); // ====== THÊM MỚI: Highlight ô vừa chọn đúng ======
 
             if (currentIndex >= currentSequence.size()) {
                 // hoàn tất chuỗi -> cộng điểm bằng độ dài order, chuyển yêu cầu mới
@@ -343,6 +363,8 @@ public class ImprovedGameController {
             updateScoreLabels();
             shakeRequest();
             setCustomerEmotion("angry"); // Customer tức giận
+            highlightWrongCell(got); // ====== THÊM MỚI: Highlight cell đỏ nhấp nháy khi chọn sai ======
+            soundManager.playWrong();
         }
     }
 
@@ -376,7 +398,7 @@ public class ImprovedGameController {
     private void recomputeAllowedTime() {
         long elapsed = (System.currentTimeMillis() - gameStartMillis) / 1000; // s
         long steps = elapsed / 15; // mỗi 15s giảm 1
-        double t = 10.0 - steps;
+        double t = 15.0 - steps;
         allowedTimeSeconds = Math.max(MIN_ALLOWED, t);
         timeLabel.setText(String.format("Time/Req: %.1fs", allowedTimeSeconds));
     }
@@ -392,14 +414,16 @@ public class ImprovedGameController {
         requestLabel.setTextFill(Color.web("#2c3e50"));
         // Reset về style mặc định
         requestLabel.setStyle(
-            "-fx-font-weight: bold; " +
-            "-fx-background-color: #fef9e7; " +
-            "-fx-border-color: #34495e; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-insets: 0; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
+                "-fx-font-weight: bold; " +
+                        "-fx-background-color: #fef9e7; " +
+                        "-fx-border-color: #34495e; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-insets: 0; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 3, 3);"
         );
+
+        resetAllCellColors(); // ====== THÊM MỚI: Reset tất cả màu về mặc định khi có yêu cầu mới ======
 
         // Reset/bắt timer cho yêu cầu này
         if (roundTimer != null) roundTimer.stop();
@@ -424,7 +448,6 @@ public class ImprovedGameController {
             }
             if (i < seq.size() - 1) sb.append("  →  ");
         }
-        sb.append("\n(Use keys 1–9 matching the 3×3 grid)");
         return sb.toString();
     }
 
@@ -468,7 +491,7 @@ public class ImprovedGameController {
         // Hiển thị dạng MM:SS
         int minutes = (int) remainSeconds / 60;
         int seconds = (int) remainSeconds % 60;
-        gameTimeLabel.setText(String.format("⏱️ Time: %d:%02d", minutes, seconds));
+        gameTimeLabel.setText(String.format("⏱ Time: %d:%02d", minutes, seconds));
 
         // Đổi màu khi còn ít thời gian
         if (remainSeconds < 10) {
@@ -519,17 +542,17 @@ public class ImprovedGameController {
         }
         else{
             if (myScore > opponentScore) {
-            titleText = "YOU WIN!";
-            titleColor = Color.web("#2ecc71"); // Green
-            soundManager.playGameOver(); // (Hoặc âm thanh chiến thắng)
-        } else if (myScore < opponentScore) {
-            titleText = "YOU LOSE";
-            titleColor = Color.web("#e74c3c"); // Red
-            soundManager.playGameOver(); // (Âm thanh thất bại)
-        } else {
-            titleText = "IT'S A DRAW!";
-            titleColor = Color.web("#f39c12"); // Orange
-        }}
+                titleText = "YOU WIN!";
+                titleColor = Color.web("#2ecc71"); // Green
+                soundManager.playGameOver(); // (Hoặc âm thanh chiến thắng)
+            } else if (myScore < opponentScore) {
+                titleText = "YOU LOSE";
+                titleColor = Color.web("#e74c3c"); // Red
+                soundManager.playGameOver(); // (Âm thanh thất bại)
+            } else {
+                titleText = "IT'S A DRAW!";
+                titleColor = Color.web("#f39c12"); // Orange
+            }}
 
         Label gameOverTitle = new Label(titleText);
         gameOverTitle.setFont(Font.font("Arial", 60));
@@ -567,10 +590,10 @@ public class ImprovedGameController {
         backToRoomBtn.setFont(Font.font("Arial", 18));
         backToRoomBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
         backToRoomBtn.setOnAction(e -> {
-                    if (onBackToRoom != null) {
-                        onBackToRoom.run();
-                    }
-                });
+            if (onBackToRoom != null) {
+                onBackToRoom.run();
+            }
+        });
         Button mainMenuBtn = new Button("Main Menu");
         mainMenuBtn.setFont(Font.font("Arial", 18));
         mainMenuBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 15 30; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;");
@@ -619,6 +642,38 @@ public class ImprovedGameController {
         return l;
     }
 
+    // ====== THÊM MỚI: Tạo Fancy Score Box với Icon và Gradient ======
+    private VBox createFancyScoreBox(String icon, String labelText, String scoreValue, String color1, String color2) {
+        VBox box = new VBox(5);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(12, 20, 12, 20));
+
+        // Style với gradient background và border
+        box.setStyle(
+                "-fx-background-color: linear-gradient(to bottom, " + color1 + ", " + color2 + ");" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: white;" +
+                        "-fx-border-width: 3;" +
+                        "-fx-border-radius: 12;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);"
+        );
+
+        // Title với icon
+        Label titleLabel = new Label(icon + " " + labelText);
+        titleLabel.setFont(Font.font("Arial", 12));
+        titleLabel.setTextFill(Color.WHITE);
+        titleLabel.setStyle("-fx-font-weight: bold;");
+
+        // Score value - lớn và nổi bật
+        Label scoreValueLabel = new Label(scoreValue);
+        scoreValueLabel.setFont(Font.font("Arial", 32));
+        scoreValueLabel.setTextFill(Color.WHITE);
+        scoreValueLabel.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 5, 0, 0, 2);");
+
+        box.getChildren().addAll(titleLabel, scoreValueLabel);
+        return box;
+    }
+
     private VBox mkItemCell(int num, String name) {
         Label k = new Label("#" + num);
         k.setFont(Font.font(14));
@@ -662,34 +717,139 @@ public class ImprovedGameController {
     }
 
     private void updateScoreLabels() {
-        scoreLabel.setText("Your Score: " + myScore);
-        opponentScoreLabel.setText("Opponent: " + opponentScore);
+        // Chỉ update giá trị số vì title đã có trong fancy box
+        scoreLabel.setText(String.valueOf(myScore));
+        opponentScoreLabel.setText(String.valueOf(opponentScore));
     }
 
     private void flashRequestProgress() {
         requestLabel.setTextFill(Color.web("#27ae60")); // Green for correct
         requestLabel.setStyle(
-            "-fx-font-weight: bold; " +
-            "-fx-background-color: #d5f4e6; " +
-            "-fx-border-color: #27ae60; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-insets: 0; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(39,174,96,0.6), 8, 0, 3, 3);"
+                "-fx-font-weight: bold; " +
+                        "-fx-background-color: #d5f4e6; " +
+                        "-fx-border-color: #27ae60; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-insets: 0; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(39,174,96,0.6), 8, 0, 3, 3);"
         );
     }
 
     private void shakeRequest() {
         requestLabel.setTextFill(Color.web("#e74c3c")); // Red for wrong
         requestLabel.setStyle(
-            "-fx-font-weight: bold; " +
-            "-fx-background-color: #fadbd8; " +
-            "-fx-border-color: #e74c3c; " +
-            "-fx-border-width: 4px; " +
-            "-fx-border-style: solid; " +
-            "-fx-border-insets: 0; " +
-            "-fx-effect: dropshadow(three-pass-box, rgba(231,76,60,0.6), 8, 0, 3, 3);"
+                "-fx-font-weight: bold; " +
+                        "-fx-background-color: #fadbd8; " +
+                        "-fx-border-color: #e74c3c; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-style: solid; " +
+                        "-fx-border-insets: 0; " +
+                        "-fx-effect: dropshadow(three-pass-box, rgba(231,76,60,0.6), 8, 0, 3, 3);"
         );
+    }
+
+    // ====== THÊM MỚI: Method để highlight cell khi chọn đúng ======
+    /**
+     * Highlight một ô item với màu xanh lá cây khi người chơi chọn đúng
+     * @param itemName Tên của item cần highlight
+     */
+    private void highlightCell(String itemName) {
+        VBox cell = itemCells.get(itemName);
+        if (cell != null) {
+            // Đổi màu nền thành xanh lá cây sáng
+            cell.setBackground(new Background(new BackgroundFill(
+                    Color.web("#2ecc71"), // Màu xanh lá cây
+                    new CornerRadii(12),
+                    Insets.EMPTY
+            )));
+
+            // Thêm hiệu ứng glow xanh để làm nổi bật
+            DropShadow glow = new DropShadow();
+            glow.setColor(Color.web("#2ecc71"));
+            glow.setRadius(15);
+            glow.setSpread(0.6);
+            cell.setEffect(glow);
+        }
+    }
+
+    // ====== THÊM MỚI: Method để reset màu của tất cả cells ======
+    /**
+     * Reset màu của tất cả các ô items về màu mặc định
+     * Được gọi khi bắt đầu một yêu cầu mới
+     */
+    private void resetAllCellColors() {
+        for (VBox cell : itemCells.values()) {
+            // Reset về màu xám nhạt mặc định
+            cell.setBackground(new Background(new BackgroundFill(
+                    Color.web("#ecf0f1"),
+                    new CornerRadii(12),
+                    Insets.EMPTY
+            )));
+            // Reset effect về bóng mờ mặc định
+            cell.setEffect(new DropShadow(6, Color.gray(0, 0.15)));
+        }
+    }
+
+    // ====== THÊM MỚI: Method để highlight cell màu đỏ nhấp nháy khi chọn sai ======
+    /**
+     * Highlight một ô item với màu đỏ nhấp nháy khi người chơi chọn sai
+     * Animation sẽ nhấp nháy 3 lần (đỏ -> xám -> đỏ -> xám -> đỏ -> xám)
+     * Sau khi hoàn thành sẽ tự động reset về màu mặc định
+     * @param itemName Tên của item cần highlight
+     */
+    private void highlightWrongCell(String itemName) {
+        VBox cell = itemCells.get(itemName);
+        if (cell == null) return;
+
+        // Màu đỏ và màu mặc định
+        final Color RED_COLOR = Color.web("#e74c3c");
+        final Color DEFAULT_COLOR = Color.web("#ecf0f1");
+
+        // Tạo hiệu ứng glow đỏ
+        DropShadow redGlow = new DropShadow();
+        redGlow.setColor(RED_COLOR);
+        redGlow.setRadius(20);
+        redGlow.setSpread(0.7);
+
+        // Hiệu ứng mặc định
+        DropShadow defaultShadow = new DropShadow(6, Color.gray(0, 0.15));
+
+        // Tạo Timeline cho hiệu ứng nhấp nháy
+        // Nhấp nháy 3 lần: 0ms(đỏ) -> 150ms(xám) -> 300ms(đỏ) -> 450ms(xám) -> 600ms(đỏ) -> 750ms(xám)
+        Timeline blinkTimeline = new Timeline(
+                // Lần nhấp nháy 1 - Đỏ
+                new KeyFrame(Duration.millis(0), e -> {
+                    cell.setBackground(new Background(new BackgroundFill(RED_COLOR, new CornerRadii(12), Insets.EMPTY)));
+                    cell.setEffect(redGlow);
+                }),
+                // Lần nhấp nháy 1 - Xám
+                new KeyFrame(Duration.millis(150), e -> {
+                    cell.setBackground(new Background(new BackgroundFill(DEFAULT_COLOR, new CornerRadii(12), Insets.EMPTY)));
+                    cell.setEffect(defaultShadow);
+                }),
+                // Lần nhấp nháy 2 - Đỏ
+                new KeyFrame(Duration.millis(300), e -> {
+                    cell.setBackground(new Background(new BackgroundFill(RED_COLOR, new CornerRadii(12), Insets.EMPTY)));
+                    cell.setEffect(redGlow);
+                }),
+                // Lần nhấp nháy 2 - Xám
+                new KeyFrame(Duration.millis(450), e -> {
+                    cell.setBackground(new Background(new BackgroundFill(DEFAULT_COLOR, new CornerRadii(12), Insets.EMPTY)));
+                    cell.setEffect(defaultShadow);
+                }),
+                // Lần nhấp nháy 3 - Đỏ
+                new KeyFrame(Duration.millis(600), e -> {
+                    cell.setBackground(new Background(new BackgroundFill(RED_COLOR, new CornerRadii(12), Insets.EMPTY)));
+                    cell.setEffect(redGlow);
+                }),
+                // Kết thúc - Reset về màu mặc định
+                new KeyFrame(Duration.millis(750), e -> {
+                    cell.setBackground(new Background(new BackgroundFill(DEFAULT_COLOR, new CornerRadii(12), Insets.EMPTY)));
+                    cell.setEffect(defaultShadow);
+                })
+        );
+
+        blinkTimeline.play();
     }
 
     /** Called when receiving GAME_STATE from server */
