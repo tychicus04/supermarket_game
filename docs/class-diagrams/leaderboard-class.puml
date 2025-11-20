@@ -1,0 +1,87 @@
+@startuml Leaderboard_Class_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title Class Diagram - Leaderboard (Bảng Xếp Hạng)
+
+' Client Side
+package "Client" {
+    class LeaderboardController {
+        - Stage stage
+        - NetworkManager networkManager
+        - VBox leaderboardList
+        - Label statusLabel
+        --
+        + LeaderboardController(NetworkManager)
+        + start(Stage): void
+        + requestLeaderboard(): void
+        - displayLeaderboard(String): void
+        - createLeaderboardEntry(int, String, int): HBox
+        - handleBackButton(): void
+    }
+
+    class NetworkManager {
+        - Socket socket
+        - PrintWriter out
+        - BufferedReader in
+        --
+        + sendMessage(String): void
+        + receiveMessage(): String
+        + isConnected(): boolean
+    }
+}
+
+' Server Side
+package "Server" {
+    class ClientHandler {
+        - Socket clientSocket
+        - PrintWriter out
+        - BufferedReader in
+        - String username
+        --
+        + run(): void
+        - handleGetLeaderboard(): void
+        - sendMessage(String): void
+    }
+
+    class DatabaseManager {
+        - Connection connection
+        --
+        + {static} getInstance(): DatabaseManager
+        + getLeaderboard(int): List<LeaderboardEntry>
+        - connect(): void
+    }
+
+    class LeaderboardEntry {
+        - String username
+        - int score
+        --
+        + LeaderboardEntry(String, int)
+        + getUsername(): String
+        + getScore(): int
+    }
+}
+
+' Relationships
+LeaderboardController --> NetworkManager : uses
+NetworkManager --> ClientHandler : communicates
+ClientHandler --> DatabaseManager : queries
+DatabaseManager --> LeaderboardEntry : returns
+
+note right of DatabaseManager
+  Query:
+  SELECT username, MAX(score) as max_score
+  FROM scores
+  GROUP BY username
+  ORDER BY max_score DESC
+  LIMIT 10
+end note
+
+note right of LeaderboardController
+  Hiển thị:
+  - Top 10 người chơi
+  - Huy chương cho top 3
+  - Username và điểm
+end note
+
+@enduml

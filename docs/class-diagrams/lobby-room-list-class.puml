@@ -1,0 +1,110 @@
+@startuml Lobby_Room_List_Class_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title Class Diagram - Lobby Room List (Danh Sách Phòng)
+
+' Client Side
+package "Client" {
+    class LobbyController {
+        - Stage stage
+        - NetworkManager networkManager
+        - VBox roomListContainer
+        - Timeline roomRefreshTimer
+        - String currentRoomId
+        --
+        + LobbyController(NetworkManager)
+        + start(Stage): void
+        + requestRoomList(): void
+        - displayRoomList(String): void
+        - createRoomEntry(RoomInfo): HBox
+        - handleCreateRoom(): void
+        - handleJoinRoom(String): void
+        - startAutoRefresh(): void
+    }
+
+    class RoomInfo {
+        - String roomId
+        - String creatorName
+        - int playerCount
+        - int maxPlayers
+        --
+        + RoomInfo(String, String, int, int)
+        + getRoomId(): String
+        + getCreatorName(): String
+        + getPlayerCount(): int
+        + isFull(): boolean
+    }
+
+    class NetworkManager {
+        - Socket socket
+        - PrintWriter out
+        - BufferedReader in
+        --
+        + sendMessage(String): void
+        + receiveMessage(): String
+        + isConnected(): boolean
+    }
+}
+
+' Server Side
+package "Server" {
+    class ClientHandler {
+        - Socket clientSocket
+        - String username
+        - GameRoom currentRoom
+        --
+        + run(): void
+        - handleGetRoomList(): void
+        - handleCreateRoom(): void
+        - handleJoinRoom(): void
+        - broadcastRoomList(): void
+    }
+
+    class GameRoom {
+        - String roomId
+        - String creatorUsername
+        - List<String> players
+        - int maxPlayers
+        --
+        + GameRoom(String, String)
+        + addPlayer(String): boolean
+        + removePlayer(String): void
+        + getPlayerCount(): int
+        + isFull(): boolean
+        + toJsonString(): String
+    }
+
+    class RoomBroadcaster {
+        - {static} Map<String, GameRoom> rooms
+        - {static} List<ClientHandler> clients
+        --
+        + {static} addRoom(GameRoom): void
+        + {static} removeRoom(String): void
+        + {static} getRoomList(): List<GameRoom>
+        + {static} broadcastToAll(String): void
+    }
+}
+
+' Relationships
+LobbyController --> NetworkManager : uses
+LobbyController --> RoomInfo : displays
+NetworkManager --> ClientHandler : communicates
+ClientHandler --> GameRoom : manages
+ClientHandler --> RoomBroadcaster : queries
+RoomBroadcaster --> GameRoom : stores
+
+note right of LobbyController
+  Tự động refresh mỗi 3 giây
+  Hiển thị:
+  - Room ID
+  - Tên người tạo
+  - Số người chơi (X/2)
+end note
+
+note bottom of RoomBroadcaster
+  Quản lý danh sách phòng toàn cục
+  Broadcast updates đến tất cả clients
+end note
+
+@enduml

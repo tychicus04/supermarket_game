@@ -1,0 +1,121 @@
+@startuml Match_History_Class_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title Class Diagram - Match History (Lịch Sử Đấu)
+
+' Client Side
+package "Client" {
+    class MatchHistoryController {
+        - Stage stage
+        - NetworkManager networkManager
+        - VBox matchListContainer
+        - HBox statsContainer
+        - String username
+        --
+        + MatchHistoryController(NetworkManager, String)
+        + start(Stage): void
+        + requestMatchHistory(): void
+        + requestMatchStats(): void
+        - displayMatchHistory(String): void
+        - displayStatistics(String): void
+        - createMatchEntry(MatchInfo): HBox
+    }
+
+    class MatchInfo {
+        - String result
+        - String opponent
+        - int myScore
+        - int opponentScore
+        - String playedAt
+        --
+        + MatchInfo(String, String, int, int, String)
+        + getResult(): String
+        + getOpponent(): String
+        + getMyScore(): int
+        + getOpponentScore(): int
+        + getPlayedAt(): String
+    }
+
+    class MatchStats {
+        - int wins
+        - int losses
+        - int draws
+        - int totalMatches
+        --
+        + MatchStats(int, int, int, int)
+        + getWins(): int
+        + getLosses(): int
+        + getDraws(): int
+        + getWinRate(): double
+    }
+
+    class NetworkManager {
+        - Socket socket
+        - PrintWriter out
+        - BufferedReader in
+        --
+        + sendMessage(String): void
+        + receiveMessage(): String
+        + isConnected(): boolean
+    }
+}
+
+' Server Side
+package "Server" {
+    class ClientHandler {
+        - Socket clientSocket
+        - String username
+        --
+        + run(): void
+        - handleGetMatchHistory(): void
+        - handleGetMatchStats(): void
+    }
+
+    class DatabaseManager {
+        - Connection connection
+        --
+        + {static} getInstance(): DatabaseManager
+        + getMatchHistory(String, int): List<MatchRecord>
+        + getMatchStats(String): MatchStatistics
+        + saveMatchHistory(MatchRecord): void
+    }
+
+    class MatchRecord {
+        - String roomId
+        - String player1
+        - String player2
+        - int player1Score
+        - int player2Score
+        - String winner
+        - Timestamp playedAt
+        --
+        + MatchRecord(...)
+        + getWinner(): String
+        + getPlayedAt(): Timestamp
+    }
+}
+
+' Relationships
+MatchHistoryController --> NetworkManager : uses
+MatchHistoryController --> MatchInfo : displays
+MatchHistoryController --> MatchStats : displays
+NetworkManager --> ClientHandler : communicates
+ClientHandler --> DatabaseManager : queries
+DatabaseManager --> MatchRecord : returns
+
+note right of MatchHistoryController
+  Hiển thị:
+  - 20 trận gần nhất
+  - Statistics (W/L/D, Win Rate)
+  - Icons: 🏆 WIN, 💔 LOSE, 🤝 DRAW
+end note
+
+note bottom of DatabaseManager
+  Query match_history table:
+  - WHERE player1 = username OR player2 = username
+  - ORDER BY played_at DESC
+  - LIMIT 20
+end note
+
+@enduml

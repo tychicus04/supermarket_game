@@ -1,0 +1,76 @@
+@startuml Lobby_Room_List_Sequence_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title Sequence Diagram - Hiển Thị Danh Sách Phòng trong Lobby
+
+actor Player as "Player\n(Người chơi)"
+participant LobbyController as "LobbyController"
+participant NetworkManager as "NetworkManager"
+participant ClientHandler as "ClientHandler\n(Server)"
+participant RoomBroadcaster as "RoomBroadcaster"
+participant GameRoom as "GameRoom"
+
+== Vào Lobby và Xem Danh Sách Phòng ==
+
+Player -> LobbyController : Click "ONLINE LOBBY"
+activate LobbyController
+
+LobbyController -> LobbyController : startAutoRefresh()\n(refresh every 3s)
+
+LobbyController -> NetworkManager : sendMessage("MESSAGE_TYPE_GET_ROOM_LIST")
+activate NetworkManager
+
+NetworkManager -> ClientHandler : "MESSAGE_TYPE_GET_ROOM_LIST"
+activate ClientHandler
+
+ClientHandler -> RoomBroadcaster : getRoomList()
+activate RoomBroadcaster
+
+RoomBroadcaster -> RoomBroadcaster : Collect all active rooms
+
+loop For each room
+    RoomBroadcaster -> GameRoom : toJsonString()
+    activate GameRoom
+    GameRoom --> RoomBroadcaster : {"roomId":"...", "creator":"...", "players":X}
+    deactivate GameRoom
+end
+
+RoomBroadcaster --> ClientHandler : List<GameRoom>
+deactivate RoomBroadcaster
+
+ClientHandler -> ClientHandler : Format JSON:\n[{"roomId":"R1", "creator":"User1", "playerCount":1}, ...]
+
+ClientHandler -> NetworkManager : "MESSAGE_TYPE_S2C_ROOM_LIST|jsonData"
+deactivate ClientHandler
+
+NetworkManager -> LobbyController : receiveMessage(jsonData)
+deactivate NetworkManager
+
+LobbyController -> LobbyController : displayRoomList(jsonData)
+
+loop For each room
+    LobbyController -> LobbyController : createRoomEntry(roomInfo)
+    note right
+        Hiển thị:
+        - Room ID
+        - Creator name
+        - Player count (X/2)
+        - Join button
+    end note
+end
+
+LobbyController --> Player : Display Room List
+deactivate LobbyController
+
+note right of Player
+  Danh sách phòng cập nhật
+  tự động mỗi 3 giây
+end note
+
+== Auto Refresh (Every 3 seconds) ==
+
+LobbyController -> NetworkManager : sendMessage("MESSAGE_TYPE_GET_ROOM_LIST")
+note right : Tự động refresh mỗi 3 giây
+
+@enduml

@@ -1,0 +1,59 @@
+@startuml Leaderboard_Sequence_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title Sequence Diagram - Xem Bảng Xếp Hạng
+
+actor Player as "Player\n(Người chơi)"
+participant LeaderboardController as "LeaderboardController"
+participant NetworkManager as "NetworkManager"
+participant ClientHandler as "ClientHandler\n(Server)"
+participant DatabaseManager as "DatabaseManager"
+database Database as "Database\n(scores table)"
+
+== Xem Bảng Xếp Hạng ==
+
+Player -> LeaderboardController : Click "LEADERBOARD"
+activate LeaderboardController
+
+LeaderboardController -> LeaderboardController : Display "Loading..."
+LeaderboardController -> NetworkManager : sendMessage("MESSAGE_TYPE_LEADERBOARD")
+activate NetworkManager
+
+NetworkManager -> ClientHandler : "MESSAGE_TYPE_LEADERBOARD"
+activate ClientHandler
+
+ClientHandler -> DatabaseManager : getLeaderboard(10)
+activate DatabaseManager
+
+DatabaseManager -> Database : SELECT username, MAX(score)\nGROUP BY username\nORDER BY score DESC\nLIMIT 10
+activate Database
+
+Database --> DatabaseManager : List<LeaderboardEntry>
+deactivate Database
+
+DatabaseManager --> ClientHandler : List<LeaderboardEntry>
+deactivate DatabaseManager
+
+ClientHandler -> ClientHandler : Format data:\n"1.PlayerA:5000\n2.PlayerB:4500\n..."
+
+ClientHandler -> NetworkManager : "MESSAGE_TYPE_LEADERBOARD|data"
+deactivate ClientHandler
+
+NetworkManager -> LeaderboardController : receiveMessage(data)
+deactivate NetworkManager
+
+LeaderboardController -> LeaderboardController : displayLeaderboard(data)
+LeaderboardController -> LeaderboardController : Create UI entries:\n🥇 Top 1\n🥈 Top 2\n🥉 Top 3\n4-10
+
+LeaderboardController --> Player : Display Top 10 Players
+deactivate LeaderboardController
+
+note right of Player
+  Người chơi thấy:
+  - Top 10 người chơi
+  - Huy chương cho top 3
+  - Username và điểm số
+end note
+
+@enduml

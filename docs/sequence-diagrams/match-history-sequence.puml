@@ -1,0 +1,105 @@
+@startuml Match_History_Sequence_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title Sequence Diagram - Xem Lịch Sử Đấu
+
+actor Player as "Player\n(Người chơi)"
+participant MatchHistoryController as "MatchHistoryController"
+participant NetworkManager as "NetworkManager"
+participant ClientHandler as "ClientHandler\n(Server)"
+participant DatabaseManager as "DatabaseManager"
+database Database as "Database\n(match_history table)"
+
+== Xem Lịch Sử Đấu ==
+
+Player -> MatchHistoryController : Click "MATCH HISTORY"
+activate MatchHistoryController
+
+MatchHistoryController -> MatchHistoryController : Display "Loading..."
+
+par Request Match History and Statistics
+    MatchHistoryController -> NetworkManager : sendMessage("MESSAGE_TYPE_GET_MATCH_HISTORY")
+    activate NetworkManager
+
+    NetworkManager -> ClientHandler : "MESSAGE_TYPE_GET_MATCH_HISTORY"
+    activate ClientHandler
+
+    ClientHandler -> DatabaseManager : getMatchHistory(username, 20)
+    activate DatabaseManager
+
+    DatabaseManager -> Database : SELECT * FROM match_history\nWHERE player1 = username OR player2 = username\nORDER BY played_at DESC\nLIMIT 20
+    activate Database
+
+    Database --> DatabaseManager : List<MatchRecord>
+    deactivate Database
+
+    DatabaseManager --> ClientHandler : List<MatchRecord>
+    deactivate DatabaseManager
+
+    ClientHandler -> ClientHandler : Format data:\n"WIN|OpponentA|3500|2800|2024-11-20 15:30\n..."
+
+    ClientHandler -> NetworkManager : "MESSAGE_TYPE_S2C_MATCH_HISTORY|data"
+    deactivate ClientHandler
+
+    NetworkManager -> MatchHistoryController : receiveMessage(data)
+    deactivate NetworkManager
+
+    MatchHistoryController -> MatchHistoryController : displayMatchHistory(data)
+
+else Request Statistics
+    MatchHistoryController -> NetworkManager : sendMessage("MESSAGE_TYPE_GET_MATCH_STATS")
+    activate NetworkManager
+
+    NetworkManager -> ClientHandler : "MESSAGE_TYPE_GET_MATCH_STATS"
+    activate ClientHandler
+
+    ClientHandler -> DatabaseManager : getMatchStats(username)
+    activate DatabaseManager
+
+    DatabaseManager -> Database : SELECT\nCOUNT(CASE WHEN winner = username THEN 1 END) as wins,\nCOUNT(CASE WHEN winner IS NULL THEN 1 END) as draws,\nCOUNT(CASE WHEN winner != username AND winner IS NOT NULL THEN 1 END) as losses\nFROM match_history\nWHERE player1 = username OR player2 = username
+    activate Database
+
+    Database --> DatabaseManager : MatchStatistics
+    deactivate Database
+
+    DatabaseManager --> ClientHandler : MatchStatistics
+    deactivate DatabaseManager
+
+    ClientHandler -> ClientHandler : Format: "15|8|2|25"
+
+    ClientHandler -> NetworkManager : "MESSAGE_TYPE_S2C_MATCH_STATS|stats"
+    deactivate ClientHandler
+
+    NetworkManager -> MatchHistoryController : receiveMessage(stats)
+    deactivate NetworkManager
+
+    MatchHistoryController -> MatchHistoryController : displayStatistics(stats)
+end
+
+MatchHistoryController -> MatchHistoryController : Create UI:\n- Statistics panel (W/L/D, Win Rate)\n- Match entries with icons
+
+loop For each match (up to 20)
+    MatchHistoryController -> MatchHistoryController : createMatchEntry(matchInfo)
+    note right
+        Display:
+        🏆 WIN (green)
+        💔 LOSE (red)
+        🤝 DRAW (gray)
+        vs Opponent
+        Score: X - Y
+        Date
+    end note
+end
+
+MatchHistoryController --> Player : Display Match History & Statistics
+deactivate MatchHistoryController
+
+note right of Player
+  Người chơi thấy:
+  - Statistics: Wins, Losses, Draws, Win Rate
+  - 20 trận đấu gần nhất
+  - Chi tiết mỗi trận: kết quả, đối thủ, điểm, ngày
+end note
+
+@enduml
