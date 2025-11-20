@@ -1,0 +1,203 @@
+@startuml Match_History_Use_Case
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam actorStyle awesome
+
+title Use Case Diagram - Match History (Lịch Sử Đấu)
+
+left to right direction
+
+' Actors
+actor "Player\n(Người chơi)" as Player
+actor "System\n(Hệ thống)" as System
+actor "Database\n(Cơ sở dữ liệu)" as Database
+
+' Package for Match History
+rectangle "Match History System" {
+    ' Player Use Cases
+    package "Player Functions\n(Chức năng người chơi)" {
+        usecase "View Match History\n(Xem lịch sử đấu)" as UC1
+        usecase "View Match Statistics\n(Xem thống kê)" as UC2
+        usecase "View Win Rate\n(Xem tỷ lệ thắng)" as UC3
+        usecase "View Match Details\n(Xem chi tiết trận đấu)" as UC4
+        usecase "Filter by Result\n(Lọc theo kết quả)" as UC5
+        usecase "Check Opponent Info\n(Xem thông tin đối thủ)" as UC6
+    }
+
+    ' System Data Retrieval
+    package "Data Retrieval\n(Lấy dữ liệu)" {
+        usecase "Fetch Match History\n(Lấy lịch sử đấu)" as UC7
+        usecase "Fetch Match Stats\n(Lấy thống kê)" as UC8
+        usecase "Load Recent Matches\n(Tải các trận gần đây)" as UC9
+        usecase "Calculate Win Rate\n(Tính tỷ lệ thắng)" as UC10
+    }
+
+    ' System Processing
+    package "Data Processing\n(Xử lý dữ liệu)" {
+        usecase "Format Match Data\n(Định dạng dữ liệu)" as UC11
+        usecase "Determine Match Result\n(Xác định kết quả)" as UC12
+        usecase "Sort by Date\n(Sắp xếp theo ngày)" as UC13
+        usecase "Count Wins/Losses/Draws\n(Đếm thắng/thua/hòa)" as UC14
+    }
+
+    ' Database Operations
+    package "Database Operations\n(Thao tác cơ sở dữ liệu)" {
+        usecase "Query Match History Table\n(Truy vấn bảng lịch sử)" as UC15
+        usecase "Save Match Result\n(Lưu kết quả trận đấu)" as UC16
+        usecase "Filter Player Matches\n(Lọc trận của người chơi)" as UC17
+        usecase "Aggregate Statistics\n(Tổng hợp thống kê)" as UC18
+        usecase "Limit to 20 Records\n(Giới hạn 20 bản ghi)" as UC19
+    }
+
+    ' Display Features
+    package "Display Features\n(Tính năng hiển thị)" {
+        usecase "Display Match Entries\n(Hiển thị các trận)" as UC20
+        usecase "Show Result Icons\n(Hiển thị biểu tượng kết quả)" as UC21
+        usecase "Display Scores\n(Hiển thị điểm)" as UC22
+        usecase "Show Timestamps\n(Hiển thị thời gian)" as UC23
+        usecase "Show Statistics Panel\n(Hiển thị bảng thống kê)" as UC24
+        usecase "Show Loading State\n(Hiển thị trạng thái tải)" as UC25
+        usecase "Handle No Matches\n(Xử lý không có trận)" as UC26
+    }
+
+    ' Match Recording (triggered by game end)
+    package "Match Recording\n(Ghi nhận trận đấu)" {
+        usecase "Record Match\n(Ghi nhận trận)" as UC27
+        usecase "Store Player Scores\n(Lưu điểm số)" as UC28
+        usecase "Store Opponent\n(Lưu đối thủ)" as UC29
+        usecase "Store Timestamp\n(Lưu thời gian)" as UC30
+        usecase "Determine Winner\n(Xác định người thắng)" as UC31
+    }
+}
+
+' Player relationships
+Player --> UC1 : requests
+Player --> UC2 : views
+Player --> UC3 : checks
+Player --> UC4 : examines
+Player --> UC5 : filters
+Player --> UC6 : looks up
+
+' System relationships
+System --> UC7 : executes
+System --> UC8 : executes
+System --> UC9 : loads
+System --> UC10 : calculates
+System --> UC11 : formats
+System --> UC12 : determines
+System --> UC13 : sorts
+System --> UC14 : counts
+System --> UC27 : triggers
+System --> UC28 : stores
+System --> UC29 : stores
+System --> UC30 : stores
+System --> UC31 : calculates
+
+' Database relationships
+Database --> UC15 : queries
+Database --> UC16 : inserts
+Database --> UC17 : filters
+Database --> UC18 : aggregates
+Database --> UC19 : limits
+
+' Include relationships - Player View Flow
+UC1 ..> UC7 : <<include>>
+UC1 ..> UC8 : <<include>>
+UC1 ..> UC25 : <<include>>
+UC2 ..> UC8 : <<include>>
+UC2 ..> UC10 : <<include>>
+UC2 ..> UC14 : <<include>>
+UC4 ..> UC11 : <<include>>
+UC4 ..> UC22 : <<include>>
+UC4 ..> UC23 : <<include>>
+
+' Include relationships - Data Retrieval
+UC7 ..> UC15 : <<include>>
+UC7 ..> UC9 : <<include>>
+UC8 ..> UC18 : <<include>>
+UC9 ..> UC17 : <<include>>
+UC9 ..> UC19 : <<include>>
+UC9 ..> UC13 : <<include>>
+
+' Include relationships - Display
+UC1 ..> UC20 : <<include>>
+UC20 ..> UC21 : <<include>>
+UC20 ..> UC22 : <<include>>
+UC20 ..> UC23 : <<include>>
+UC2 ..> UC24 : <<include>>
+
+' Include relationships - Match Recording
+UC27 ..> UC16 : <<include>>
+UC27 ..> UC28 : <<include>>
+UC27 ..> UC29 : <<include>>
+UC27 ..> UC30 : <<include>>
+UC27 ..> UC31 : <<include>>
+
+' Extend relationships
+UC26 ..> UC1 : <<extend>>\n(if no matches)
+UC3 ..> UC2 : <<extend>>\n(part of stats)
+UC5 ..> UC4 : <<extend>>\n(visual filtering)
+UC6 ..> UC4 : <<extend>>\n(opponent details)
+
+' Dependencies
+UC7 ..> UC11 : produces data for
+UC8 ..> UC24 : feeds
+UC11 ..> UC12 : uses
+UC14 ..> UC10 : enables
+UC12 ..> UC21 : determines
+
+' Notes
+note right of UC9
+  Loads up to 20
+  most recent matches
+end note
+
+note right of UC12
+  Result Logic:
+  - Winner = player → WIN
+  - Winner = null → DRAW
+  - Winner = opponent → LOSE
+end note
+
+note bottom of UC10
+  Formula:
+  Win Rate = (Wins / Total) × 100%
+end note
+
+note left of UC21
+  Icons:
+  🏆 WIN (green border)
+  💔 LOSE (red border)
+  🤝 DRAW (gray border)
+end note
+
+note right of UC27
+  Automatically triggered
+  when multiplayer
+  game ends
+end note
+
+note bottom of UC15
+  Query filters:
+  WHERE player1 = username
+  OR player2 = username
+  ORDER BY played_at DESC
+  LIMIT 20
+end note
+
+note right of UC18
+  Statistics SQL:
+  - COUNT wins (winner = user)
+  - COUNT losses (winner != user AND winner IS NOT NULL)
+  - COUNT draws (winner IS NULL)
+end note
+
+note top of UC24
+  Displays:
+  - Wins (green)
+  - Losses (red)
+  - Draws (gray)
+  - Win Rate % (blue)
+end note
+
+@enduml

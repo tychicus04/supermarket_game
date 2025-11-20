@@ -1,0 +1,138 @@
+@startuml Leaderboard_Use_Case
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam actorStyle awesome
+
+title Use Case Diagram - Leaderboard (Bảng Xếp Hạng)
+
+left to right direction
+
+' Actors
+actor "Player\n(Người chơi)" as Player
+actor "System\n(Hệ thống)" as System
+actor "Database\n(Cơ sở dữ liệu)" as Database
+
+' Package for Leaderboard
+rectangle "Leaderboard System" {
+    ' Main Use Cases
+    package "Player Functions\n(Chức năng người chơi)" {
+        usecase "View Leaderboard\n(Xem bảng xếp hạng)" as UC1
+        usecase "View Top 10 Players\n(Xem top 10 người chơi)" as UC2
+        usecase "See Own Ranking\n(Xem hạng của mình)" as UC3
+        usecase "Compare Scores\n(So sánh điểm)" as UC4
+    }
+
+    ' System Use Cases
+    package "System Functions\n(Chức năng hệ thống)" {
+        usecase "Fetch Leaderboard Data\n(Lấy dữ liệu xếp hạng)" as UC5
+        usecase "Calculate Rankings\n(Tính toán thứ hạng)" as UC6
+        usecase "Sort by Score\n(Sắp xếp theo điểm)" as UC7
+        usecase "Get Max Score per Player\n(Lấy điểm cao nhất mỗi người)" as UC8
+        usecase "Format Display Data\n(Định dạng dữ liệu hiển thị)" as UC9
+    }
+
+    ' Database Use Cases
+    package "Database Operations\n(Thao tác cơ sở dữ liệu)" {
+        usecase "Query Scores Table\n(Truy vấn bảng điểm)" as UC10
+        usecase "Aggregate Player Scores\n(Tổng hợp điểm người chơi)" as UC11
+        usecase "Order by Score DESC\n(Sắp xếp giảm dần)" as UC12
+        usecase "Limit to Top 10\n(Giới hạn top 10)" as UC13
+    }
+
+    ' Display Use Cases
+    package "Display Features\n(Tính năng hiển thị)" {
+        usecase "Show Rank Medals\n(Hiển thị huy chương)" as UC14
+        usecase "Display Player Names\n(Hiển thị tên người chơi)" as UC15
+        usecase "Display Scores\n(Hiển thị điểm số)" as UC16
+        usecase "Show Loading State\n(Hiển thị trạng thái tải)" as UC17
+        usecase "Handle No Data\n(Xử lý không có dữ liệu)" as UC18
+    }
+}
+
+' Player relationships
+Player --> UC1 : requests
+Player --> UC2 : views
+Player --> UC3 : checks
+Player --> UC4 : compares
+
+' System relationships
+System --> UC5 : executes
+System --> UC6 : performs
+System --> UC7 : applies
+System --> UC8 : computes
+System --> UC9 : formats
+
+' Database relationships
+Database --> UC10 : executes query
+Database --> UC11 : aggregates
+Database --> UC12 : orders
+Database --> UC13 : limits
+
+' Include relationships
+UC1 ..> UC5 : <<include>>
+UC1 ..> UC17 : <<include>>
+UC5 ..> UC10 : <<include>>
+UC6 ..> UC8 : <<include>>
+UC6 ..> UC7 : <<include>>
+UC8 ..> UC11 : <<include>>
+UC7 ..> UC12 : <<include>>
+UC2 ..> UC13 : <<include>>
+UC2 ..> UC14 : <<include>>
+UC2 ..> UC15 : <<include>>
+UC2 ..> UC16 : <<include>>
+UC9 ..> UC14 : <<include>>
+UC9 ..> UC15 : <<include>>
+UC9 ..> UC16 : <<include>>
+
+' Extend relationships
+UC18 ..> UC1 : <<extend>>\n(if no scores exist)
+UC3 ..> UC2 : <<extend>>\n(find self in list)
+UC4 ..> UC2 : <<extend>>\n(compare with others)
+
+' Dependency relationships
+UC5 ..> UC6 : triggers
+UC6 ..> UC9 : produces
+UC10 ..> UC11 : feeds data
+UC11 ..> UC12 : prepares for
+UC12 ..> UC13 : before
+
+' Notes
+note right of UC2
+  Only top 10 players
+  shown globally
+end note
+
+note right of UC8
+  Shows each player's
+  highest score only,
+  not all games
+end note
+
+note bottom of UC14
+  Medals displayed:
+  🥇 1st place
+  🥈 2nd place
+  🥉 3rd place
+end note
+
+note left of UC10
+  SQL Query:
+  SELECT username,
+  MAX(score) as max_score
+  FROM scores
+  GROUP BY username
+  ORDER BY max_score DESC
+  LIMIT 10
+end note
+
+note right of UC17
+  Shows "Loading..."
+  while fetching data
+end note
+
+note right of UC18
+  Shows "No scores yet!"
+  if table is empty
+end note
+
+@enduml

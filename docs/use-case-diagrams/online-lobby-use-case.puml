@@ -1,0 +1,120 @@
+@startuml Online_Lobby_Use_Case
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam actorStyle awesome
+
+title Use Case Diagram - Online Lobby (Sảnh Chờ Online)
+
+left to right direction
+
+' Actors
+actor "Player\n(Người chơi)" as Player
+actor "Room Creator\n(Người tạo phòng)" as Creator
+actor "System\n(Hệ thống)" as System
+
+' Package for Online Lobby
+rectangle "Online Lobby System" {
+    ' Room Management Use Cases
+    package "Room Management\n(Quản lý phòng)" {
+        usecase "Create Room\n(Tạo phòng)" as UC1
+        usecase "Browse Rooms\n(Xem danh sách phòng)" as UC2
+        usecase "Join Room\n(Vào phòng)" as UC3
+        usecase "Request Join\n(Yêu cầu vào phòng)" as UC4
+        usecase "Leave Room\n(Rời phòng)" as UC5
+        usecase "Start Game\n(Bắt đầu trò chơi)" as UC6
+        usecase "Accept Join Request\n(Chấp nhận yêu cầu)" as UC7
+        usecase "Reject Join Request\n(Từ chối yêu cầu)" as UC8
+        usecase "Kick Player\n(Đuổi người chơi)" as UC9
+    }
+
+    ' Friend Management Use Cases
+    package "Friend Management\n(Quản lý bạn bè)" {
+        usecase "Search Users\n(Tìm người dùng)" as UC10
+        usecase "Send Friend Request\n(Gửi lời mời kết bạn)" as UC11
+        usecase "View Friend Requests\n(Xem lời mời kết bạn)" as UC12
+        usecase "Accept Friend Request\n(Chấp nhận kết bạn)" as UC13
+        usecase "Reject Friend Request\n(Từ chối kết bạn)" as UC14
+        usecase "View Friends List\n(Xem danh sách bạn bè)" as UC15
+        usecase "Invite Friend to Room\n(Mời bạn vào phòng)" as UC16
+    }
+
+    ' System Use Cases
+    package "System Functions\n(Chức năng hệ thống)" {
+        usecase "Update Room List\n(Cập nhật danh sách phòng)" as UC17
+        usecase "Track Online Status\n(Theo dõi trạng thái online)" as UC18
+        usecase "Notify Room Changes\n(Thông báo thay đổi phòng)" as UC19
+        usecase "Validate Room Capacity\n(Kiểm tra sức chứa phòng)" as UC20
+        usecase "Auto-refresh Data\n(Tự động làm mới dữ liệu)" as UC21
+    }
+}
+
+' Player relationships
+Player --> UC1 : initiates
+Player --> UC2 : browses
+Player --> UC3 : joins
+Player --> UC4 : requests
+Player --> UC5 : leaves
+Player --> UC10 : searches
+Player --> UC11 : sends
+Player --> UC12 : views
+Player --> UC13 : accepts
+Player --> UC14 : rejects
+Player --> UC15 : views
+Player --> UC16 : invites
+
+' Room Creator relationships (inherits from Player)
+Creator --|> Player : <<extends>>
+Creator --> UC7 : approves
+Creator --> UC8 : rejects
+Creator --> UC9 : kicks
+Creator --> UC6 : starts
+
+' System relationships
+System --> UC17 : broadcasts
+System --> UC18 : monitors
+System --> UC19 : sends
+System --> UC20 : validates
+System --> UC21 : executes
+
+' Include relationships
+UC1 ..> UC17 : <<include>>
+UC3 ..> UC20 : <<include>>
+UC3 ..> UC19 : <<include>>
+UC5 ..> UC17 : <<include>>
+UC5 ..> UC19 : <<include>>
+UC6 ..> UC20 : <<include>>
+UC7 ..> UC3 : <<include>>
+UC9 ..> UC19 : <<include>>
+UC11 ..> UC18 : <<include>>
+UC15 ..> UC18 : <<include>>
+UC16 ..> UC4 : <<include>>
+
+' Extend relationships
+UC4 ..> UC3 : <<extend>>\n(if room full)
+UC21 ..> UC15 : <<extend>>\n(every 5s)
+UC21 ..> UC2 : <<extend>>\n(every 3s)
+
+' Notes
+note right of UC6
+  Requires:
+  - 2 players in room
+  - User is room creator
+end note
+
+note right of UC9
+  Only room creator
+  can kick non-creator
+  players
+end note
+
+note bottom of UC20
+  Maximum 2 players
+  per room
+end note
+
+note right of UC16
+  Only available when
+  user is in a room
+end note
+
+@enduml
